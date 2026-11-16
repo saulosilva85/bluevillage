@@ -232,9 +232,9 @@ const isAdmin=()=>me()&&me().perfil==='Administrador';
 
 /* ---------- Cálculos ---------- */
 function calc(){
-  const rec=db.lanc.filter(l=>l.tipo==='Receita').reduce((s,l)=>s+ +l.valor,0);
-  const desp=db.lanc.filter(l=>l.tipo==='Despesa').reduce((s,l)=>s+ +l.valor,0);
-  const despMes=db.lanc.filter(l=>l.tipo==='Despesa'&&l.data.slice(0,7)===ym()).reduce((s,l)=>s+ +l.valor,0);
+  const rec=db.lanc.filter(l=>l.tipo==='Receita'||(l.tipo==='Salão de Festa'&&l.descricao==='Crédito')).reduce((s,l)=>s+ +l.valor,0);
+  const desp=db.lanc.filter(isDesp).reduce((s,l)=>s+ +l.valor,0);
+  const despMes=db.lanc.filter(l=>isDesp(l)&&l.data.slice(0,7)===ym()).reduce((s,l)=>s+ +l.valor,0);
   const fundo=db.lanc.filter(l=>l.tipo==='Fundo de Reserva').reduce((s,l)=>s+ +l.valor,0)
              -db.lanc.filter(l=>l.tipo==='Resgate do Fundo').reduce((s,l)=>s+ +l.valor,0);
   const contratos=db.forn.filter(c=>c.status==='Ativo').length;
@@ -300,7 +300,7 @@ dashboard(){
   </div>
   <div class="panel">
     <div class="panel-h"><h4><i class="fa-solid fa-clock-rotate-left"></i>Últimos Lançamentos</h4></div>
-    ${tbl(['Data','Tipo','Descrição','Torre','Valor'],recent.map(l=>[dt(l.data),tipoTag(l.tipo),esc(l.descricao),esc(l.torre||'Geral'),`<span class="${l.tipo==='Despesa'?'r':'g'}">${brl(l.valor)}</span>`]),'Nenhum lançamento cadastrado.')}
+    ${tbl(['Data','Tipo','Descrição','Torre','Valor'],recent.map(l=>[dt(l.data),tipoTag(l.tipo),esc(l.descricao),esc(l.torre||'Geral'),`<span class="${isSaida(l)?'r':'g'}">${brl(l.valor)}</span>`]),'Nenhum lançamento cadastrado.')}
   </div>`;
 },
 financeiro(){
@@ -310,17 +310,17 @@ financeiro(){
   <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-plus"></i>Novo Lançamento</h4></div>
     <form class="form" id="fLanc">
       <div><label>Data</label><input type="date" name="data" value="${today()}" required></div>
-      <div><label>Tipo</label><select name="tipo"><option>Receita</option><option>Despesa</option><option>Fundo de Reserva</option><option>Resgate do Fundo</option></select></div>
+      <div><label>Tipo</label><select name="tipo"><option>Receita</option><option>Despesa</option><option>Fundo de Reserva</option><option>Resgate do Fundo</option><option>Salão de Festa</option></select></div>
       <div><label>Categoria</label><select name="categoria">${['Taxa Condominial','Água','Energia','Folha de Pagamento','Manutenção','Limpeza','Segurança','Administrativo','Outros'].map(o=>`<option>${o}</option>`).join('')}</select></div>
       <div><label>Torre</label><select name="torre"><option value="">Geral</option>${TORRES.map(t=>`<option>${t}</option>`).join('')}</select></div>
-      <div style="grid-column:span 2"><label>Descrição</label><input name="descricao" required></div>
+      <div><label>Descrição</label><select name="descricao"><option>Crédito</option><option>Débito</option></select></div>
       <div><label>Valor (R$)</label><input type="number" name="valor" step="0.01" min="0.01" required></div>
       <div><button class="btn"><i class="fa-solid fa-floppy-disk"></i>Salvar</button></div>
     </form></div>
   <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-list"></i>Lançamentos</h4>
     <small>${rows.length} registro(s)</small></div>
     ${tbl(['Data','Tipo','Categoria','Descrição','Torre','Valor',''],rows.map(l=>[dt(l.data),tipoTag(l.tipo),esc(l.categoria),esc(l.descricao),esc(l.torre||'Geral'),
-      `<span class="${/Despesa|Resgate/.test(l.tipo)?'r':'g'}">${brl(l.valor)}</span>`,delBtn('lanc',l.id)]),'Nenhum lançamento cadastrado.')}
+      `<span class="${isSaida(l)?'r':'g'}">${brl(l.valor)}</span>`,delBtn('lanc',l.id)]),'Nenhum lançamento cadastrado.')}
   </div>
   <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-sliders"></i>Parâmetros do Teto de Gastos</h4></div>
     <form class="form" id="fCfg">
@@ -423,7 +423,10 @@ function tbl(h,rows,empty){
   if(!rows.length)return `<div class="empty">${empty}</div>`;
   return `<div class="tbl-wrap"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
-function tipoTag(t){const c={'Receita':'#34d399','Despesa':'#f87171','Fundo de Reserva':'#60a5fa','Resgate do Fundo':'#fbbf24'}[t];return `<span class="tag" style="background:${c}22;color:${c}">${t}</span>`}
+/* Despesa conta como saída; Salão de Festa entra ou sai conforme a Descrição (Crédito/Débito) */
+const isDesp=l=>l.tipo==='Despesa'||(l.tipo==='Salão de Festa'&&l.descricao==='Débito');
+const isSaida=l=>isDesp(l)||l.tipo==='Resgate do Fundo';
+function tipoTag(t){const c={'Receita':'#34d399','Despesa':'#f87171','Fundo de Reserva':'#60a5fa','Resgate do Fundo':'#fbbf24','Salão de Festa':'#f472b6'}[t]||'#94a3b8';return `<span class="tag" style="background:${c}22;color:${c}">${t}</span>`}
 function prioTag(p){const c={'Baixa':'#94a3b8','Média':'#60a5fa','Alta':'#fbbf24','Urgente':'#f87171'}[p];return `<span class="tag" style="background:${c}22;color:${c}">${p}</span>`}
 function delBtn(col,id){return `<button class="icon-btn" title="Excluir" onclick="del('${col}','${id}')"><i class="fa-solid fa-trash"></i></button>`}
 
