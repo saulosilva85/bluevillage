@@ -137,6 +137,7 @@ td select{background:var(--bg);color:#fff;border:1px solid var(--border);border-
 /* olho de mostrar/ocultar senha */
 .pw-wrap{position:relative;display:block}
 .pw-wrap input{padding-right:46px!important}
+.mask{-webkit-text-security:disc;text-security:disc}
 .pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:34px;height:34px;border:0;background:none;
   color:#94a3b8;cursor:pointer;display:grid;place-items:center;border-radius:6px;padding:0}
 @media(hover:hover){.pw-eye:hover{color:#fff;background:rgba(148,163,184,.12)}}
@@ -278,8 +279,15 @@ function errMsg(e){
 }
 async function q(p){const{data,error}=await p;if(error)throw error;return data}
 /* executa uma gravação, atualiza as tabelas afetadas e avisa o resultado; trava o botão contra toque duplo */
-async function run(p,okMsg,tabs=[],btn){if(btn)btn.disabled=true;
-  try{await p;if(okMsg)toast(okMsg);await refresh(tabs)}catch(e){console.error(e);toast(errMsg(e),1)}finally{if(btn)btn.disabled=false}}
+async function run(p,okMsg,tabs=[],formId){if(formId)travar(formId);
+  try{await p;if(okMsg)toast(okMsg);await refresh(tabs)}catch(e){console.error(e);toast(errMsg(e),1)}finally{if(formId)liberar(formId)}}
+/* trava o formulário enquanto salva (evita toque duplo), mesmo que a tela seja redesenhada no meio */
+const ocupado={};
+function travar(id){ocupado[id]=true;marcarOcupados()}
+function liberar(id){delete ocupado[id];marcarOcupados()}
+function marcarOcupados(){document.querySelectorAll('form[id]').forEach(f=>{const b=f.querySelector('.btn:not([type=button])');if(b)b.disabled=!!ocupado[f.id]})}
+/* limpa o formulário que está na tela agora (a tela pode ter sido redesenhada enquanto salvava) */
+function limparForm(id){const f=document.getElementById(id);if(f)f.reset()}
 const emailDe=u=>`${u}@${EMAIL_DOMAIN}`;
 function log(acao){if(!sb||!meProfile)return;sb.from('logs').insert({usuario:meProfile.user,acao}).then(()=>agendar('logs'),()=>{})}
 const COLS={lanc:['id','data','tipo','categoria','torre','descricao','valor'],manut:['id','data','torre','tipo','prioridade','titulo','resp','custo','status'],
@@ -415,7 +423,7 @@ function render(p,keep){
   const saved=keep&&p===curPage?saveForms():null,y=window.scrollY;
   curPage=p;history.replaceState(null,'','#'+p);
   document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===p));
-  main.innerHTML=PAGES[p]();(AFTER[p]||(()=>{}))();addEyes(main);
+  main.innerHTML=PAGES[p]();(AFTER[p]||(()=>{}))();addEyes(main);marcarOcupados();
   if(saved){restoreForms(saved);window.scrollTo(0,y)}else window.scrollTo(0,0);
 }
 const go=p=>render(p,false);
@@ -541,13 +549,13 @@ usuarios(){
       <div><label>Nome</label><input name="nome" required></div>
       <div><label>Usuário (login)</label><input name="user" required pattern="[A-Za-z0-9._\\-]+" title="Use letras, números, ponto, hífen ou sublinhado (sem espaços)" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
       <div><label>Perfil</label><select name="perfil"><option>Administrador</option><option selected>Síndico</option><option>Subsíndico</option><option>Conselho Fiscal</option><option>Operador</option></select></div>
-      <div><label>Senha</label><input type="password" name="senha" minlength="6" required autocomplete="new-password"></div>
+      <div><label>Senha</label><input type="password" name="senha" minlength="6" required data-nova></div>
       <div><button class="btn"><i class="fa-solid fa-floppy-disk"></i>Criar</button></div>
     </form></div>`:''}
   <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-key"></i>Alterar Minha Senha</h4></div>
     <form class="form" id="fPass" autocomplete="off">
       <div><label>Senha atual</label><input type="password" name="atual" required autocomplete="current-password"></div>
-      <div><label>Nova senha</label><input type="password" name="nova" minlength="6" required autocomplete="new-password"></div>
+      <div><label>Nova senha</label><input type="password" name="nova" minlength="6" required data-nova></div>
       <div><button class="btn sec"><i class="fa-solid fa-check"></i>Alterar</button></div>
     </form></div>
   </div>
@@ -606,7 +614,7 @@ function toggleUser(id){const u=db.users.find(x=>x.id===id);if(!u)return;
 function resetUser(id){
   const u=db.users.find(x=>x.id===id);if(!u)return;const bg=document.createElement('div');bg.className='modal-bg';
   bg.innerHTML=`<form class="modal form" style="display:block" autocomplete="off"><h4>Redefinir senha — ${esc(u.user)}</h4>
-    <label>Nova senha (mín. 6 caracteres)</label><input type="password" name="nova" minlength="6" required autocomplete="new-password">
+    <label>Nova senha (mín. 6 caracteres)</label><input type="password" name="nova" minlength="6" required data-nova>
     <div class="acts"><button type="button" class="btn sec" data-x>Cancelar</button><button class="btn">Salvar</button></div></form>`;
   document.body.appendChild(bg);addEyes(bg);
   const fechar=()=>{bg.remove();softRender()};
@@ -645,50 +653,60 @@ async function resetDB(){
   try{for(const t of ['lanc','manut','forn'])await q(sb.from(t).delete().neq('id',''));await q(sb.from('logs').delete().gt('id',0));
     log('Banco zerado');toast('Banco zerado.');await refresh(['lanc','manut','forn','logs'])}catch(e){console.error(e);toast(errMsg(e),1)}}
 
-const btnDe=f=>f.querySelector('.btn');
 const AFTER={
 financeiro(){
-  fLanc.onsubmit=e=>{e.preventDefault();if(btnDe(e.target).disabled)return;const f=e.target,d=formData(f);d.valor=parseValor(d.valor);
+  fLanc.onsubmit=e=>{e.preventDefault();if(ocupado[e.target.id])return;const f=e.target,d=formData(f);d.valor=parseValor(d.valor);
     if(!(d.valor>0))return toast('Informe um valor válido (ex.: 1.250,00).',1);
     f.reset();f.data.value=d.data;f.tipo.value=d.tipo;f.categoria.value=d.categoria;f.torre.value=d.torre;f.descricao.value=d.descricao;
-    run(q(sb.from('lanc').insert(limpa('lanc',d))).then(()=>log(`Lançamento ${d.tipo}: ${d.descricao} (${brl(d.valor)})`)),'Lançamento salvo.',['lanc'],btnDe(f))};
-  fCfg.onsubmit=e=>{e.preventDefault();if(btnDe(e.target).disabled)return;const f=e.target,d=formData(f),s=parseValor(d.salario),m=parseValor(d.mult);
+    run(q(sb.from('lanc').insert(limpa('lanc',d))).then(()=>log(`Lançamento ${d.tipo}: ${d.descricao} (${brl(d.valor)})`)),'Lançamento salvo.',['lanc'],f.id)};
+  fCfg.onsubmit=e=>{e.preventDefault();if(ocupado[e.target.id])return;const f=e.target,d=formData(f),s=parseValor(d.salario),m=parseValor(d.mult);
     if(!(s>0)||!(m>0))return toast('Informe valores válidos.',1);f.querySelector('input').blur();
-    run(q(sb.from('config').upsert({id:'main',salario:s,mult:m})).then(()=>log('Parâmetros do teto atualizados')),'Parâmetros atualizados.',['config'],btnDe(f))};
+    run(q(sb.from('config').upsert({id:'main',salario:s,mult:m})).then(()=>log('Parâmetros do teto atualizados')),'Parâmetros atualizados.',['config'],f.id)};
 },
-manutencao(){fMan.onsubmit=e=>{e.preventDefault();if(btnDe(e.target).disabled)return;const f=e.target,d=formData(f);d.custo=parseValor(d.custo);if(isNaN(d.custo))d.custo=0;
+manutencao(){fMan.onsubmit=e=>{e.preventDefault();if(ocupado[e.target.id])return;const f=e.target,d=formData(f);d.custo=parseValor(d.custo);if(isNaN(d.custo))d.custo=0;
   if(d.custo<0)return toast('Custo inválido.',1);d.status='Aberta';f.reset();f.data.value=today();
-  run(q(sb.from('manut').insert(limpa('manut',d))).then(()=>log(`Manutenção registrada (${d.torre}): ${d.titulo}`)),'Registro salvo.',['manut'],btnDe(f))}},
-fornecedores(){fForn.onsubmit=e=>{e.preventDefault();if(btnDe(e.target).disabled)return;const f=e.target,d=formData(f);d.valor=parseValor(d.valor);if(isNaN(d.valor))d.valor=0;
+  run(q(sb.from('manut').insert(limpa('manut',d))).then(()=>log(`Manutenção registrada (${d.torre}): ${d.titulo}`)),'Registro salvo.',['manut'],f.id)}},
+fornecedores(){fForn.onsubmit=e=>{e.preventDefault();if(ocupado[e.target.id])return;const f=e.target,d=formData(f);d.valor=parseValor(d.valor);if(isNaN(d.valor))d.valor=0;
   if(d.valor<0)return toast('Valor inválido.',1);if(d.inicio&&d.fim&&d.fim<d.inicio)return toast('O término deve ser depois do início.',1);f.reset();
-  run(q(sb.from('forn').insert(limpa('forn',d))).then(()=>log(`Fornecedor cadastrado: ${d.nome}`)),'Fornecedor salvo.',['forn'],btnDe(f))}},
+  run(q(sb.from('forn').insert(limpa('forn',d))).then(()=>log(`Fornecedor cadastrado: ${d.nome}`)),'Fornecedor salvo.',['forn'],f.id)}},
 usuarios(){
-  if(window.fUser)fUser.onsubmit=async e=>{e.preventDefault();const f=e.target,d=formData(f),u=d.user.trim().toLowerCase(),btn=btnDe(f);
+  if(window.fUser)fUser.onsubmit=async e=>{e.preventDefault();if(ocupado.fUser)return;const d=formData(e.target),u=d.user.trim().toLowerCase();
     if(!/^[a-z0-9._-]+$/.test(u))return toast('Usuário inválido: use letras, números, ponto, hífen ou sublinhado.',1);
     if(db.users.some(x=>x.user===u))return toast('Este usuário já existe.',1);
-    btn.disabled=true;
+    if((d.senha||'').length<6)return toast('A senha precisa ter no mínimo 6 caracteres.',1);
+    travar('fUser');
     try{const id=await criarConta(u,d.senha);
       await q(sb.from('perfis').insert({id,usuario:u,nome:d.nome.trim(),perfil:d.perfil,ativo:true}));
-      f.reset();log(`Usuário criado: ${u} (${d.perfil})`);toast('Usuário criado.');await refresh(['users'])}
-    catch(err){console.error(err);toast(errMsg(err),1)}finally{btn.disabled=false}};
-  fPass.onsubmit=async e=>{e.preventDefault();const f=e.target,d=formData(f),btn=btnDe(f);btn.disabled=true;
+      limparForm('fUser');log(`Usuário criado: ${u} (${d.perfil})`);toast('Usuário criado.');await refresh(['users']);limparForm('fUser')}
+    catch(err){console.error(err);toast(errMsg(err),1)}finally{liberar('fUser')}};
+  fPass.onsubmit=async e=>{e.preventDefault();if(ocupado.fPass)return;const d=formData(e.target);
+    if((d.nova||'').length<6)return toast('A nova senha precisa ter no mínimo 6 caracteres.',1);
+    travar('fPass');
     try{const{data:{user}}=await sb.auth.getUser();
       const r=await sb.auth.signInWithPassword({email:user.email,password:d.atual});if(r.error)throw{message:'atual-incorreta'};
-      await q(sb.auth.updateUser({password:d.nova}));f.reset();log('Senha alterada');toast('Senha alterada.')}
-    catch(err){console.error(err);toast(err.message==='atual-incorreta'?'Senha atual incorreta.':errMsg(err),1)}finally{btn.disabled=false}};
+      await q(sb.auth.updateUser({password:d.nova}));limparForm('fPass');log('Senha alterada');toast('Senha alterada.')}
+    catch(err){console.error(err);toast(err.message==='atual-incorreta'?'Senha atual incorreta.':errMsg(err),1)}finally{liberar('fPass')}};
 }};
 
 /* ---------- Olho: mostrar/ocultar senha ---------- */
 const EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 const EYE_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.4 10.4 0 0 1 12 19C5.5 19 2 12 2 12a18.5 18.5 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.6 9.6 0 0 1 12 4c6.5 0 10 7 10 7a18.6 18.6 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M2 2l20 20"/></svg>';
+/* Campos de senha NOVA viram texto mascarado: assim o navegador não oferece "senha forte"
+   nem pede para salvar a senha de outra pessoa. Navegadores sem suporte ao mascaramento mantêm type=password. */
+const MASCARA=typeof CSS!=='undefined'&&CSS.supports&&CSS.supports('-webkit-text-security','disc');
 function addEyes(root){
   root.querySelectorAll('input[type=password]:not([data-eye])').forEach(inp=>{
     inp.dataset.eye='1';
+    const nova=inp.hasAttribute('data-nova');
+    if(nova){inp.setAttribute('autocomplete','off');inp.setAttribute('autocapitalize','none');inp.setAttribute('autocorrect','off');inp.spellcheck=false;
+      inp.setAttribute('data-lpignore','true');inp.setAttribute('data-1p-ignore','');inp.setAttribute('data-bwignore','');
+      if(MASCARA){inp.type='text';inp.classList.add('mask')}}
+    const oculto=()=>nova&&MASCARA?inp.classList.contains('mask'):inp.type==='password';
     const w=document.createElement('span');w.className='pw-wrap';inp.before(w);w.appendChild(inp);
     const b=document.createElement('button');b.type='button';b.className='pw-eye';b.innerHTML=EYE_OFF;
     b.title='Mostrar senha';b.setAttribute('aria-label','Mostrar senha');
     b.addEventListener('pointerdown',e=>e.preventDefault()); // não tira o foco nem abre/fecha o teclado no celular
-    b.onclick=()=>{const show=inp.type==='password';inp.type=show?'text':'password';b.innerHTML=show?EYE:EYE_OFF;
+    b.onclick=()=>{const show=oculto();if(nova&&MASCARA)inp.classList.toggle('mask',!show);else inp.type=show?'text':'password';b.innerHTML=show?EYE:EYE_OFF;
       b.title=show?'Ocultar senha':'Mostrar senha';b.setAttribute('aria-label',b.title)};
     w.appendChild(b);
   });
