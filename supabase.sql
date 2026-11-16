@@ -167,6 +167,23 @@ grant  execute on function public.admin_definir_senha(uuid, text)    to authenti
 grant  execute on function public.admin_excluir_usuario(uuid)        to authenticated;
 grant  execute on function public.admin_remover_orfao(text)          to authenticated;
 
+-- ---------- Confirmação automática dos logins internos ----------
+-- Os logins do sistema usam e-mails internos (@bluevillage.app) que não recebem mensagens.
+-- Esta regra marca esses logins como confirmados no momento em que são criados.
+create or replace function public.bv_autoconfirmar() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.email like '%@bluevillage.app' and new.email_confirmed_at is null then
+    new.email_confirmed_at := now();
+  end if;
+  return new;
+end $$;
+drop trigger if exists bv_autoconfirmar on auth.users;
+create trigger bv_autoconfirmar before insert on auth.users
+  for each row execute function public.bv_autoconfirmar();
+update auth.users set email_confirmed_at = now()
+  where email like '%@bluevillage.app' and email_confirmed_at is null;
+
 -- ---------- Tempo real (atualização automática entre aparelhos) ----------
 do $$
 declare t text;

@@ -258,7 +258,7 @@ function errMsg(e){
   const c=String((e&&(e.code||''))||''),m=String((e&&(e.message||e.error_description||e.msg))||e||'');
   if(/invalid login credentials|invalid_credentials|invalid-credential/i.test(m+c))return 'Usuário ou senha inválidos.';
   if(/email logins are disabled|email_provider_disabled|provider is not enabled/i.test(m+c))return 'Login por e-mail desativado no Supabase: ative o provedor "Email" em Authentication > Sign In / Providers (veja o README).';
-  if(/email not confirmed/i.test(m))return 'Login não confirmado: desative "Confirm email" no Supabase (veja o README).';
+  if(/email not confirmed/i.test(m))return 'Login não confirmado: execute novamente o supabase.sql no Supabase e desative "Confirm email" (veja o README).';
   if(/already registered|already exists|user_already_exists/i.test(m+c))return 'Este usuário já existe.';
   if(/signups not allowed|signup_disabled/i.test(m+c))return 'Cadastro de logins desativado no Supabase: ative "Allow new users to sign up" (veja o README).';
   if(/rate limit|too many/i.test(m))return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
@@ -318,7 +318,7 @@ async function criarConta(user,senha){
     let r=await tentar();
     if(r.error&&/already registered|already exists/i.test(r.error.message)){await q(sb.rpc('admin_remover_orfao',{email_alvo:emailDe(user)}));r=await tentar()}
     if(r.error)throw r.error;
-    if(!r.data.session)throw{message:'Email not confirmed'};
+    if(!r.data.session){const s2=await sec.auth.signInWithPassword({email:emailDe(user),password:senha});if(s2.error)throw s2.error}
     return r.data.user.id;
   }finally{await sec.auth.signOut().catch(()=>{})}
 }
@@ -340,7 +340,8 @@ loginForm.onsubmit=async e=>{
       /* primeiro acesso: cria o login do admin */
       if(u==='admin'&&p===SENHA_PADRAO&&/invalid/i.test(error.message)&&await q(sb.rpc('precisa_bootstrap'))){
         const r=await sb.auth.signUp({email:emailDe('admin'),password:p});
-        if(r.error)throw r.error;if(!r.data.session)throw{message:'Email not confirmed'};
+        if(r.error)throw r.error;
+        if(!r.data.session){const s2=await sb.auth.signInWithPassword({email:emailDe('admin'),password:p});if(s2.error)throw s2.error}
       }else throw error;
     }
     lPass.value='';
