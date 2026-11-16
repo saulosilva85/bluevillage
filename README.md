@@ -100,7 +100,7 @@ O painel do Supabase é em inglês, por isso os nomes dos botões estão em ingl
 2. Na tela **Create a new project**:
    - **Project name:** `bluevillage`
    - **Database Password:** clique em **Generate a password** e **guarde essa senha** em lugar seguro. O sistema não usa essa senha, mas ela é a chave mestra do banco.
-   - **Region:** **South America (São Paulo)**
+   - **Region:** se a lista tiver a seção **Specific regions** (role a lista para baixo), escolha **South America (São Paulo)**. Se só aparecerem as regiões gerais, escolha **Americas**.
 3. Clique em **Create new project** e aguarde de 1 a 2 minutos, até sumir a mensagem *Setting up project*.
 
 **3. Criar as tabelas**
