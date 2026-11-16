@@ -216,6 +216,11 @@ let db;
 try{db=JSON.parse(localStorage.getItem(DBKEY))}catch(e){}
 if(!db||!db.users){db=seed();save()}
 function save(){localStorage.setItem(DBKEY,JSON.stringify(db))}
+function reloadDB(){try{const d=JSON.parse(localStorage.getItem(DBKEY));if(d&&d.users)db=d}catch(e){}}
+/* mantém várias abas abertas sincronizadas (evita uma aba antiga sobrescrever dados novos) */
+window.addEventListener('storage',e=>{if(e.key!==DBKEY)return;reloadDB();
+  if(!me()){if(!login.classList.contains('hidden'))return;location.replace(location.pathname+location.search);return}
+  if(!document.querySelector('.modal-bg')&&!main.contains(document.activeElement))_go(location.hash.slice(1))});
 function log(acao){db.logs.unshift({ts:new Date().toISOString(),user:me()?me().user:'-',acao});db.logs=db.logs.slice(0,1000);save()}
 
 /* ---------- Utilidades ---------- */
@@ -245,18 +250,19 @@ function calc(){
 /* ---------- Login ---------- */
 document.getElementById('loginForm').onsubmit=e=>{
   e.preventDefault();
+  reloadDB();
   const u=lUser.value.trim().toLowerCase(),p=lPass.value;
   const usr=db.users.find(x=>x.user===u&&x.ativo);
   if(usr&&usr.hash===hashPass(u,p)){
-    sessionStorage.setItem('bv_sess',usr.id);log('Login realizado');lPass.value='';boot(true);
+    sessionStorage.setItem('bv_sess',usr.id);log('Login realizado');lPass.value='';boot();
   }else{loginErr.textContent='Usuário ou senha inválidos.';log('Falha de login: '+u)}
 };
-function logout(){log('Logout');sessionStorage.removeItem('bv_sess');location.reload()}
-function boot(aposLogin){
+function logout(){log('Logout');sessionStorage.removeItem('bv_sess');location.replace(location.pathname+location.search)}
+function boot(){
   if(!me()){login.classList.remove('hidden');app.classList.add('hidden');return}
   login.classList.add('hidden');app.classList.remove('hidden');
   userName.textContent=me().nome;userRole.textContent=me().perfil;userAvatar.textContent=(me().nome[0]||'?').toUpperCase();
-  go(aposLogin?'dashboard':(location.hash.slice(1)||'dashboard'));
+  go('dashboard'); // sempre abre no Dashboard & Torres (login, novo usuário ou recarregar a página)
 }
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>{go(n.dataset.page);document.querySelector('aside').classList.remove('open')});
 function go(p){
