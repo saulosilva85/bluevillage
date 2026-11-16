@@ -248,15 +248,15 @@ document.getElementById('loginForm').onsubmit=e=>{
   const u=lUser.value.trim().toLowerCase(),p=lPass.value;
   const usr=db.users.find(x=>x.user===u&&x.ativo);
   if(usr&&usr.hash===hashPass(u,p)){
-    sessionStorage.setItem('bv_sess',usr.id);log('Login realizado');lPass.value='';boot();
+    sessionStorage.setItem('bv_sess',usr.id);log('Login realizado');lPass.value='';boot(true);
   }else{loginErr.textContent='Usuário ou senha inválidos.';log('Falha de login: '+u)}
 };
 function logout(){log('Logout');sessionStorage.removeItem('bv_sess');location.reload()}
-function boot(){
+function boot(aposLogin){
   if(!me()){login.classList.remove('hidden');app.classList.add('hidden');return}
   login.classList.add('hidden');app.classList.remove('hidden');
   userName.textContent=me().nome;userRole.textContent=me().perfil;userAvatar.textContent=(me().nome[0]||'?').toUpperCase();
-  go(location.hash.slice(1)||'dashboard');
+  go(aposLogin?'dashboard':(location.hash.slice(1)||'dashboard'));
 }
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>{go(n.dataset.page);document.querySelector('aside').classList.remove('open')});
 function go(p){
