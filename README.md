@@ -25,7 +25,8 @@ O sistema é um único arquivo (`index.html`), sem servidor e sem instalação. 
 ## 📋 Módulos
 
 ### Dashboard & Torres
-- **Indicadores:** Saldo em Conta, Total de Despesas do Mês, Fundo de Reserva e Contratos Ativos. Todos começam zerados e mudam conforme os cadastros.
+- **Indicadores:** Saldo em Conta, Total de Despesas do Mês, Fundo de Reserva, **Salão de Festa** e Contratos Ativos. Todos começam zerados e mudam conforme os cadastros.
+- **Salão de Festa:** mostra o saldo da conta do salão (créditos − débitos) e, logo abaixo, o total de créditos e de débitos.
 - **Alerta de teto de gastos.** O teto é o salário mínimo × multiplicador (padrão: R$ 1.518,00 × 5 = R$ 7.590,00).
   - 🟢 Orçamento sob controle
   - 🟡 Atenção: despesas do mês a partir de 80% do teto
@@ -42,10 +43,11 @@ Cada lançamento tem **Data, Tipo, Categoria, Torre, Descrição e Valor**.
 | Despesa | Subtrai do saldo e conta no teto de gastos |
 | Fundo de Reserva | Soma no Fundo de Reserva |
 | Resgate do Fundo | Subtrai do Fundo de Reserva |
-| Salão de Festa | **Crédito** soma no saldo; **Débito** subtrai e conta no teto de gastos |
+| Salão de Festa | Conta separada: **Crédito** soma e **Débito** subtrai do saldo do Salão de Festa. Não altera o Saldo em Conta nem o teto de gastos |
 
 - **Descrição:** lista de seleção com **Crédito** ou **Débito**.
 - **Categorias:** Taxa Condominial, Água, Energia, Folha de Pagamento, Manutenção, Limpeza, Segurança, Administrativo e Outros.
+- O topo da tela Financeiro mostra o resumo: Saldo, Fundo e Salão.
 - **Parâmetros do teto:** salário mínimo e multiplicador, editáveis nesta tela.
 
 ### Manutenção & Torres

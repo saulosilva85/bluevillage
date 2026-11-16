@@ -69,10 +69,12 @@ main{flex:1;padding:32px;min-width:0}
 .alert.ok{background:#0f2e33;border-color:#11604f;color:var(--green)}
 .alert.warn{background:#33290f;border-color:#7a5a12;color:var(--yellow)}
 .alert.bad{background:#3a1720;border-color:#7f1d2d;color:var(--red)}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-bottom:24px}
-.kpi{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:18px;margin-bottom:24px}
+.kpi .mini{margin-top:8px;font-size:12px;color:var(--muted)}
+.pk{color:#f472b6}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:22px 20px}
 .kpi p{color:var(--muted);font-size:14px;margin-bottom:10px}
-.kpi h3{font-size:24px;font-weight:700}
+.kpi h3{font-size:clamp(18px,1.45vw,24px);font-weight:700;white-space:nowrap}
 .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px}
 .panel-h{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:24px;gap:10px;flex-wrap:wrap}
 .panel-h h4{font-size:18px;display:flex;gap:10px;align-items:center}
@@ -126,7 +128,7 @@ td select{background:var(--bg);color:#fff;border:1px solid var(--border);border-
 .modal h4{font-size:17px;margin-bottom:16px}
 .modal .acts{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
 
-@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.towers,.grid2{grid-template-columns:1fr}}
+@media(max-width:1100px){.towers,.grid2{grid-template-columns:1fr}}
 @media(max-width:800px){
   .menu-toggle{display:block}
   aside{position:fixed;top:74px;bottom:0;left:0;z-index:10;transform:translateX(-100%);transition:transform .2s}
@@ -237,14 +239,16 @@ const isAdmin=()=>me()&&me().perfil==='Administrador';
 
 /* ---------- Cálculos ---------- */
 function calc(){
-  const rec=db.lanc.filter(l=>l.tipo==='Receita'||(l.tipo==='Salão de Festa'&&l.descricao==='Crédito')).reduce((s,l)=>s+ +l.valor,0);
+  const rec=db.lanc.filter(l=>l.tipo==='Receita').reduce((s,l)=>s+ +l.valor,0);
+  const sal=db.lanc.filter(l=>l.tipo==='Salão de Festa'),soma=a=>a.reduce((s,l)=>s+ +l.valor,0);
+  const salCred=soma(sal.filter(l=>l.descricao==='Crédito')),salDeb=soma(sal.filter(l=>l.descricao==='Débito'));
   const desp=db.lanc.filter(isDesp).reduce((s,l)=>s+ +l.valor,0);
   const despMes=db.lanc.filter(l=>isDesp(l)&&l.data.slice(0,7)===ym()).reduce((s,l)=>s+ +l.valor,0);
   const fundo=db.lanc.filter(l=>l.tipo==='Fundo de Reserva').reduce((s,l)=>s+ +l.valor,0)
              -db.lanc.filter(l=>l.tipo==='Resgate do Fundo').reduce((s,l)=>s+ +l.valor,0);
   const contratos=db.forn.filter(c=>c.status==='Ativo').length;
   const teto=db.config.salario*db.config.mult;
-  return{saldo:rec-desp,despMes,fundo,contratos,teto};
+  return{saldo:rec-desp,despMes,fundo,contratos,teto,salao:salCred-salDeb,salCred,salDeb};
 }
 
 /* ---------- Login ---------- */
@@ -292,6 +296,7 @@ dashboard(){
     <div class="kpi"><p>Saldo em Conta</p><h3 class="${c.saldo<0?'r':'g'}">${brl(c.saldo)}</h3></div>
     <div class="kpi"><p>Total Despesas do Mês</p><h3 class="r">${brl(c.despMes)}</h3></div>
     <div class="kpi"><p>Fundo de Reserva</p><h3 class="b">${brl(c.fundo)}</h3></div>
+    <div class="kpi"><p>Salão de Festa</p><h3 class="${c.salao<0?'r':'pk'}">${brl(c.salao)}</h3><div class="mini">Créditos ${brl(c.salCred)} · Débitos ${brl(c.salDeb)}</div></div>
     <div class="kpi"><p>Contratos Ativos</p><h3 class="p">${c.contratos}</h3></div>
   </div>
   <div class="panel">
@@ -312,7 +317,7 @@ dashboard(){
 financeiro(){
   const c=calc(),rows=db.lanc.slice().sort((a,b)=>b.data.localeCompare(a.data));
   return `
-  <div class="page-head"><h2>Financeiro</h2><div class="chip">Saldo: <b>${brl(c.saldo)}</b> | Fundo: <b>${brl(c.fundo)}</b></div></div>
+  <div class="page-head"><h2>Financeiro</h2><div class="chip">Saldo: <b>${brl(c.saldo)}</b> | Fundo: <b>${brl(c.fundo)}</b> | Salão: <b>${brl(c.salao)}</b></div></div>
   <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-plus"></i>Novo Lançamento</h4></div>
     <form class="form" id="fLanc">
       <div><label>Data</label><input type="date" name="data" value="${today()}" required></div>
@@ -429,9 +434,9 @@ function tbl(h,rows,empty){
   if(!rows.length)return `<div class="empty">${empty}</div>`;
   return `<div class="tbl-wrap"><table><thead><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
-/* Despesa conta como saída; Salão de Festa entra ou sai conforme a Descrição (Crédito/Débito) */
-const isDesp=l=>l.tipo==='Despesa'||(l.tipo==='Salão de Festa'&&l.descricao==='Débito');
-const isSaida=l=>isDesp(l)||l.tipo==='Resgate do Fundo';
+/* Salão de Festa é uma conta separada: Crédito entra e Débito sai do saldo do salão (não mexe no Saldo em Conta nem no teto) */
+const isDesp=l=>l.tipo==='Despesa';
+const isSaida=l=>isDesp(l)||l.tipo==='Resgate do Fundo'||(l.tipo==='Salão de Festa'&&l.descricao==='Débito');
 function tipoTag(t){const c={'Receita':'#34d399','Despesa':'#f87171','Fundo de Reserva':'#60a5fa','Resgate do Fundo':'#fbbf24','Salão de Festa':'#f472b6'}[t]||'#94a3b8';return `<span class="tag" style="background:${c}22;color:${c}">${t}</span>`}
 function prioTag(p){const c={'Baixa':'#94a3b8','Média':'#60a5fa','Alta':'#fbbf24','Urgente':'#f87171'}[p];return `<span class="tag" style="background:${c}22;color:${c}">${p}</span>`}
 function delBtn(col,id){return `<button class="icon-btn" title="Excluir" onclick="del('${col}','${id}')"><i class="fa-solid fa-trash"></i></button>`}
