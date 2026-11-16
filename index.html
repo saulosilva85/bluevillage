@@ -257,6 +257,7 @@ function formData(f){return Object.fromEntries(new FormData(f).entries())}
 function errMsg(e){
   const c=String((e&&(e.code||''))||''),m=String((e&&(e.message||e.error_description||e.msg))||e||'');
   if(/invalid login credentials|invalid_credentials|invalid-credential/i.test(m+c))return 'Usuário ou senha inválidos.';
+  if(/email logins are disabled|email_provider_disabled|provider is not enabled/i.test(m+c))return 'Login por e-mail desativado no Supabase: ative o provedor "Email" em Authentication > Sign In / Providers (veja o README).';
   if(/email not confirmed/i.test(m))return 'Login não confirmado: desative "Confirm email" no Supabase (veja o README).';
   if(/already registered|already exists|user_already_exists/i.test(m+c))return 'Este usuário já existe.';
   if(/signups not allowed|signup_disabled/i.test(m+c))return 'Cadastro de logins desativado no Supabase: ative "Allow new users to sign up" (veja o README).';
