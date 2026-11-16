@@ -38,13 +38,20 @@ header{height:74px;display:flex;align-items:center;justify-content:space-between
 .brand .ico{width:40px;height:40px;border-radius:10px;background:var(--blue);display:grid;place-items:center;font-size:18px}
 .brand b{font-size:18px;display:block}
 .brand small{font-size:12px;color:var(--blue-l)}
-.hdr-right{display:flex;align-items:center;gap:14px}
-.user-pill{background:#334155;border-radius:999px;padding:5px 12px;font-size:13px;color:#e2e8f0;display:flex;gap:7px;align-items:center}
-.logout{color:var(--muted);cursor:pointer;font-size:14px;background:none;border:0;display:flex;gap:6px;align-items:center}
-.logout:hover{color:#fff}
-.menu-toggle{display:none;background:none;border:0;color:#fff;font-size:20px;cursor:pointer;margin-right:6px}
+/* usuário e sair no rodapé do menu */
+.side-foot{margin-top:auto;border-top:1px solid var(--border);padding:14px 8px 4px}
+.side-user{display:flex;align-items:center;gap:12px;padding:6px 8px 12px}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--blue);display:grid;place-items:center;font-weight:700;font-size:16px;flex-shrink:0}
+.side-user b{display:block;font-size:14px;line-height:1.3;word-break:break-word}
+.side-user small{color:var(--muted);font-size:12px}
+.logout{width:100%;display:flex;align-items:center;gap:14px;padding:10px 16px;border-radius:8px;border:0;background:none;
+  color:#e2e8f0;font-size:15px;font-weight:500;cursor:pointer;text-align:left}
+.logout i{width:20px;text-align:center;color:#cbd5e1}
+.logout:hover{background:#3a1720;color:var(--red)}.logout:hover i{color:var(--red)}
+.menu-toggle{display:none;width:36px;height:36px;background:none;border:0;color:#fff;font-size:20px;cursor:pointer;margin-right:6px}
 .layout{display:flex;min-height:calc(100vh - 74px)}
-aside{width:248px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);padding:16px 8px}
+aside{width:248px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);padding:16px 8px;
+  display:flex;flex-direction:column;position:sticky;top:74px;height:calc(100vh - 74px);overflow-y:auto}
 .nav{display:flex;align-items:center;gap:14px;padding:11px 16px;margin-bottom:6px;border-radius:8px;cursor:pointer;
   color:#e2e8f0;font-size:16px;font-weight:500;line-height:1.5}
 .nav i{width:20px;text-align:center;color:#cbd5e1;font-size:16px}
@@ -125,7 +132,6 @@ td select{background:var(--bg);color:#fff;border:1px solid var(--border);border-
   aside{position:fixed;top:74px;bottom:0;left:0;z-index:10;transform:translateX(-100%);transition:transform .2s}
   aside.open{transform:none}
   main{padding:18px}.kpis{grid-template-columns:1fr}
-  .user-pill span{display:none}
 }
 </style>
 </head>
@@ -153,10 +159,6 @@ td select{background:var(--bg);color:#fff;border:1px solid var(--border);border-
       <div class="ico"><i class="fa-solid fa-building-shield"></i></div>
       <div><b>Gestão Blue Village</b><small>Torres: Jurerê | Gunga | Itacaré</small></div>
     </div>
-    <div class="hdr-right">
-      <div class="user-pill"><i class="fa-solid fa-user"></i><span id="userPill"></span></div>
-      <button class="logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
-    </div>
   </header>
   <div class="layout">
     <aside>
@@ -166,6 +168,10 @@ td select{background:var(--bg);color:#fff;border:1px solid var(--border);border-
       <div class="nav" data-page="fornecedores"><i class="fa-solid fa-handshake"></i>Fornecedores &amp; Contratos</div>
       <div class="nav" data-page="usuarios"><i class="fa-solid fa-users"></i>Gestão de Usuários</div>
       <div class="nav" data-page="banco"><i class="fa-solid fa-database"></i>Banco &amp; Logs</div>
+      <div class="side-foot">
+        <div class="side-user"><div class="avatar" id="userAvatar"></div><div><b id="userName"></b><small id="userRole"></small></div></div>
+        <button class="logout" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i>Sair</button>
+      </div>
     </aside>
     <main id="main"></main>
   </div>
@@ -249,7 +255,7 @@ function logout(){log('Logout');sessionStorage.removeItem('bv_sess');location.re
 function boot(){
   if(!me()){login.classList.remove('hidden');app.classList.add('hidden');return}
   login.classList.add('hidden');app.classList.remove('hidden');
-  userPill.textContent=`${me().nome} (${me().perfil})`;
+  userName.textContent=me().nome;userRole.textContent=me().perfil;userAvatar.textContent=(me().nome[0]||'?').toUpperCase();
   go(location.hash.slice(1)||'dashboard');
 }
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>{go(n.dataset.page);document.querySelector('aside').classList.remove('open')});
