@@ -18,6 +18,13 @@ button,.nav,label.btn,select,a,input[type=date]{touch-action:manipulation;-webki
 button:disabled{opacity:.6;cursor:default}
 button,input,select,textarea{font-family:inherit;font-size:14px}
 .hidden{display:none!important}
+:root{color-scheme:dark}
+/* preenchimento automático do navegador (Chrome/Edge/Safari): mantém o campo azul-escuro em vez de branco */
+input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,input:-webkit-autofill:active{
+  -webkit-text-fill-color:#fff!important;caret-color:#fff;
+  -webkit-box-shadow:0 0 0 1000px #0f172a inset!important;box-shadow:0 0 0 1000px #0f172a inset!important;
+  transition:background-color 99999s ease-out 0s}
+input:autofill{-webkit-text-fill-color:#fff!important;box-shadow:0 0 0 1000px #0f172a inset!important}
 
 /* ===== LOGIN ===== */
 #login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:16px;
