@@ -2,7 +2,7 @@
 
 Plataforma web interna de gestão do condomínio **Blue Village Residence** (Torres **Jurerê**, **Gunga** e **Itacaré**).
 
-O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. Os dados ficam em um banco de dados online (**Firebase**), então tudo que é feito no notebook aparece no celular e vice-versa, em tempo real.
+O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. Os dados ficam em um banco de dados online (**Supabase**), então tudo que é feito no notebook aparece no celular e vice-versa, em tempo real.
 
 🔗 **Acesso:** https://saulosilva85.github.io/bluevillage/
 
@@ -15,7 +15,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 | `admin` | `Blue@2027!` |
 
 > ⚠️ O link é público. **Troque a senha no primeiro acesso** em *Gestão de Usuários → Alterar Minha Senha*.
-> O primeiro login com `admin` / `Blue@2027!` cria o administrador no banco online. Faça isso logo depois de configurar o Firebase.
+> O primeiro login com `admin` / `Blue@2027!` cria o administrador no banco online. Faça isso logo depois de configurar o Supabase.
 
 - Todos os campos de senha têm o botão de **olho**. 👁️‍🗨️ Olho riscado: senha oculta. 👁️ Olho aberto: senha visível.
 - Depois do login, ou ao recarregar a página, o sistema **sempre abre no Dashboard & Torres**.
@@ -77,26 +77,62 @@ Cada lançamento tem **Data, Tipo, Categoria, Torre, Descrição e Valor**.
 
 ## 💾 Onde ficam os dados
 
-- Os dados ficam no **Firebase (Google)**: banco **Cloud Firestore** e logins pelo **Firebase Authentication**.
+- Os dados ficam no **Supabase**: um banco PostgreSQL online com login de usuários.
 - Qualquer aparelho (notebook, celular, tablet) vê as mesmas informações, e as telas se atualizam sozinhas quando alguém lança algo.
-- As senhas são guardadas pelo Firebase. Nem o sistema nem o administrador conseguem vê-las.
-- As **regras de segurança** (`firestore.rules`) só liberam os dados para usuários **ativos e logados**. Só o **Administrador** pode criar, alterar e excluir usuários.
-- Um usuário inativado é desconectado na hora, em todos os aparelhos.
-- O plano gratuito do Firebase (Spark) é suficiente para o condomínio.
+- As senhas são guardadas pelo Supabase com criptografia. Nem o sistema nem o administrador conseguem vê-las.
+- A **segurança por linha (RLS)** do `supabase.sql` só libera os dados para usuários **ativos e logados**. Só o **Administrador** cria, altera, exclui e redefine a senha de usuários.
+- Um usuário inativado ou excluído é desconectado na hora, em todos os aparelhos.
+- O plano gratuito do Supabase é suficiente para o condomínio. Ele pausa projetos sem uso por 7 dias. Para evitar isso, a tarefa automática `.github/workflows/supabase-keepalive.yml` consulta o banco a cada 3 dias. Se mesmo assim o projeto pausar, entre no painel do Supabase e clique em **Restore project**.
 - **Dados da versão anterior:** se algum navegador ainda tiver dados salvos localmente, entre com o admin nele. O Dashboard vai mostrar um aviso. Vá em *Banco & Logs → Enviar para a nuvem*. Os usuários antigos precisam ser recriados.
 
 ---
 
-## 🔥 Configuração do Firebase (fazer uma única vez)
+## 🟢 Configuração do Supabase (fazer uma única vez)
 
-1. Acesse https://console.firebase.google.com e entre com uma conta Google.
-2. Clique em **Criar um projeto** (ou *Adicionar projeto*), dê o nome `bluevillage`, desative o Google Analytics e clique em **Criar projeto**.
-3. **Authentication:** no menu *Criação* (*Build*), abra **Authentication → Vamos começar**. Na aba **Método de login**, escolha **E-mail/senha**, ative a primeira chave e clique em **Salvar**.
-4. **Firestore:** no menu *Criação*, abra **Firestore Database → Criar banco de dados**. Escolha o local **southamerica-east1 (São Paulo)**, marque **modo de produção** e clique em **Criar**.
-5. **Regras:** no Firestore, abra a aba **Regras**, apague o conteúdo, cole todo o arquivo [`firestore.rules`](firestore.rules) e clique em **Publicar**.
-6. **App da Web:** clique na engrenagem ⚙️ → **Configurações do projeto**. Em *Seus apps*, clique no ícone **`</>`**, dê o apelido `bluevillage-web` e clique em **Registrar app**. Não marque o Firebase Hosting.
-7. Copie os valores do bloco `firebaseConfig` (`apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, `appId`). Cole no início do `<script>` do `index.html`, em `const FIREBASE_CONFIG = {...}`. Essas chaves não são secretas: quem protege os dados são as regras do passo 5.
-8. Publique (merge no `main`), abra o site e entre com `admin` / `Blue@2027!` para criar o administrador.
+O painel do Supabase é em inglês, por isso os nomes dos botões estão em inglês.
+
+**1. Criar a conta**
+1. Acesse https://supabase.com e clique em **Start your project**.
+2. Clique em **Continue with GitHub** e autorize com a conta `saulosilva85`.
+
+**2. Criar o projeto**
+1. Se for pedida uma organização, preencha **Name:** `Blue Village`, **Type:** Personal e **Plan:** Free. Depois clique em **Create organization**.
+2. Na tela **Create a new project**:
+   - **Project name:** `bluevillage`
+   - **Database Password:** clique em **Generate a password** e **guarde essa senha** em lugar seguro. O sistema não usa essa senha, mas ela é a chave mestra do banco.
+   - **Region:** se a lista tiver a seção **Specific regions** (role a lista para baixo), escolha **South America (São Paulo)**. Se só aparecerem as regiões gerais, escolha **Americas**.
+3. Clique em **Create new project** e aguarde de 1 a 2 minutos, até sumir a mensagem *Setting up project*.
+
+**3. Criar as tabelas**
+1. No menu da esquerda, clique em **SQL Editor** (ícone `>_`).
+2. Clique em **+ New query**, ou use a área em branco que já aparece.
+3. Abra o arquivo [`supabase.sql`](supabase.sql) do repositório e clique em **Copy raw file** (ícone de copiar). Cole no editor.
+4. Clique em **Run**, no canto inferior direito, ou aperte Ctrl+Enter.
+5. Deve aparecer **Success. No rows returned**. Se aparecer um aviso sobre *destructive operation*, clique em **Run this query**.
+6. Para conferir, clique em **Table Editor** no menu da esquerda. Devem aparecer as tabelas `config`, `forn`, `lanc`, `logs`, `manut` e `perfis`.
+
+**4. Configurar o login**
+1. No menu da esquerda, clique em **Authentication** e depois em **Sign In / Providers**. Em versões antigas o nome é **Providers**.
+2. Em **User Signups**, deixe **Allow new users to sign up** **ligado**. O sistema usa isso para o administrador criar usuários.
+3. Clique em **Email** e confira:
+   - **Enable Email provider:** ligado.
+   - **Confirm email:** **DESLIGADO**. Isso é obrigatório, porque os logins são internos e nenhum e-mail é enviado.
+4. Clique em **Save**.
+
+**5. Copiar as chaves**
+1. Clique na engrenagem **Project Settings**, no fim do menu da esquerda, e depois em **Data API** (ou **API**). Copie a **Project URL**, que tem o formato `https://xxxxxxxx.supabase.co`.
+2. Ainda em **Project Settings**, abra **API Keys**. Na aba **Legacy API Keys**, copie a chave **anon** **public**, um texto longo que começa com `eyJ`.
+   > A chave *anon* não é secreta: ela fica no site e quem protege os dados é a segurança do passo 3. **Nunca** use nem envie a chave **service_role** nem a **secret**.
+3. Coloque os dois valores no início do `<script>` do `index.html`:
+   ```js
+   const SUPABASE_URL = "https://xxxxxxxx.supabase.co";
+   const SUPABASE_ANON_KEY = "eyJ...";
+   ```
+
+**6. Primeiro acesso**
+1. Publique (merge no `main`) e aguarde o ✅ na aba **Actions**.
+2. Abra o site e entre com `admin` / `Blue@2027!`. Esse primeiro login cria o administrador.
+3. Troque a senha em *Gestão de Usuários → Alterar Minha Senha*.
 
 ---
 
@@ -124,10 +160,11 @@ Cada lançamento tem **Data, Tipo, Categoria, Torre, Descrição e Valor**.
 ```
 bluevillage/
 ├── index.html       # sistema completo (HTML + CSS + JavaScript, com a marca d'água embutida)
-├── firestore.rules  # regras de segurança do banco (colar no Firebase Console)
+├── supabase.sql     # tabelas, segurança e funções do banco (colar no SQL Editor do Supabase)
+├── .github/workflows/supabase-keepalive.yml  # mantém o projeto gratuito ativo
 └── README.md
 ```
 
-- Banco e login: Firebase Web SDK 10 (carregado da internet).
+- Banco e login: supabase-js 2 (carregado da internet).
 - Ícones: Font Awesome 6 (via CDN, precisa de internet).
 - Não há dependências para instalar nem etapa de build.

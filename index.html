@@ -214,20 +214,14 @@ td select{background:var(--bg);color:#fff;border:1px solid var(--border);border-
 
 <script>
 /* =====================================================================
-   CONFIGURAÇÃO DO FIREBASE  (banco de dados online compartilhado)
-   Cole aqui o objeto "firebaseConfig" do seu projeto Firebase.
+   CONFIGURAÇÃO DO SUPABASE  (banco de dados online compartilhado)
+   Supabase > Project Settings > API: copie "Project URL" e a chave "anon public".
    Passo a passo no README.md.
    ===================================================================== */
-const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
-};
-const FB_VER='10.12.2';
-const EMAIL_DOMAIN='bluevillage.app';   // domínio interno dos logins (não precisa existir)
+const SUPABASE_URL = "https://nusiftldrfdpfnaghuih.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51c2lmdGxkcmZkcGZuYWdodWloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4NjM3MjksImV4cCI6MjExMDQzOTcyOX0.itapppygBh89WdypUKOmgPvPGTNluhwfj60e7WgCI5A";
+const SB_VER='2.45.4';
+const EMAIL_DOMAIN='bluevillage.app';   // domínio interno dos logins (nenhum e-mail é enviado)
 const SENHA_PADRAO='Blue@2027!';        // senha do primeiro acesso do admin
 
 /* ---------- Estado ---------- */
@@ -236,8 +230,8 @@ const TCOR={'Jurerê':'#60a5fa','Gunga':'#34d399','Itacaré':'#c084fc'};
 const DEF_CFG={salario:1518,mult:5};
 const LEGACY_KEY='bluevillage_db_v1',MIGRADO_KEY='bluevillage_migrado';
 let db={users:[],lanc:[],manut:[],forn:[],logs:[],config:{...DEF_CFG}};
-let A,AU,ST,auth,fs,meProfile=null,unsubs=[],loaded=new Set(),onLoaded=null;
-let curPage='dashboard',pendingRender=false,justLoggedIn=false,bootstrapping=false,sessionUid=null;
+let SBM,sb,meProfile=null,canal=null,pollTimer=null,timers={};
+let curPage='dashboard',pendingRender=false,justLoggedIn=false,sessionUid=null;
 const me=()=>meProfile;
 const isAdmin=()=>!!meProfile&&meProfile.perfil==='Administrador';
 
@@ -261,23 +255,30 @@ function toast(msg,err){document.querySelectorAll('.toast').forEach(t=>t.remove(
   const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),err?4500:2600)}
 function formData(f){return Object.fromEntries(new FormData(f).entries())}
 function errMsg(e){
-  const c=(e&&e.code)||'';
-  if(/invalid-credential|wrong-password|user-not-found|invalid-email|invalid-login/.test(c))return 'Usuário ou senha inválidos.';
-  if(/too-many-requests/.test(c))return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-  if(/network-request-failed|unavailable|deadline-exceeded/.test(c))return 'Sem conexão com a internet. Verifique e tente novamente.';
-  if(/permission-denied/.test(c))return 'Sem permissão para esta ação.';
-  if(/weak-password/.test(c))return 'Senha fraca: use no mínimo 6 caracteres.';
-  if(/email-already-in-use/.test(c))return 'Este usuário já existe.';
-  if(/operation-not-allowed|configuration-not-found/.test(c))return 'Login por e-mail/senha não está habilitado no Firebase (veja o README).';
-  if(/api-key|invalid-api-key/.test(c))return 'Configuração do Firebase inválida (veja o README).';
-  return 'Erro: '+(c||(e&&e.message)||e);
+  const c=String((e&&(e.code||''))||''),m=String((e&&(e.message||e.error_description||e.msg))||e||'');
+  if(/invalid login credentials|invalid_credentials|invalid-credential/i.test(m+c))return 'Usuário ou senha inválidos.';
+  if(/email not confirmed/i.test(m))return 'Login não confirmado: desative "Confirm email" no Supabase (veja o README).';
+  if(/already registered|already exists|user_already_exists/i.test(m+c))return 'Este usuário já existe.';
+  if(/signups not allowed|signup_disabled/i.test(m+c))return 'Cadastro de logins desativado no Supabase: ative "Allow new users to sign up" (veja o README).';
+  if(/rate limit|too many/i.test(m))return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+  if(/failed to fetch|networkerror|network request failed|load failed|sem-conexao/i.test(m+c))return 'Sem conexão com a internet. Verifique e tente novamente.';
+  if(c==='42501'||/row-level security|não autorizado|permission/i.test(m))return 'Sem permissão para esta ação.';
+  if(/password should be|weak/i.test(m))return 'Senha fraca: use no mínimo 6 caracteres.';
+  if(/invalid api key|no api key/i.test(m))return 'Configuração do Supabase inválida (veja o README).';
+  if(c==='42P01'||c==='PGRST202'||/does not exist|could not find the function/i.test(m))return 'Banco não preparado: execute o arquivo supabase.sql no Supabase (veja o README).';
+  return 'Erro: '+(m||c);
 }
-function run(p,okMsg){return p.then(()=>{if(okMsg)toast(okMsg)}).catch(e=>{console.error(e);toast(errMsg(e),1)})}
-const ref=(c,id)=>ST.doc(fs,c,id),col=c=>ST.collection(fs,c);
-const semId=o=>{const{id,...r}=o;return r};
-function log(acao){if(!fs||!meProfile)return;ST.addDoc(col('logs'),{ts:new Date().toISOString(),user:meProfile.user,acao}).catch(()=>{})}
-async function batchWrite(ops){for(let i=0;i<ops.length;i+=400){const b=ST.writeBatch(fs);
-  ops.slice(i,i+400).forEach(o=>o.del?b.delete(o.ref):b.set(o.ref,o.data));await b.commit()}}
+async function q(p){const{data,error}=await p;if(error)throw error;return data}
+/* executa uma gravação, atualiza as tabelas afetadas e avisa o resultado; trava o botão contra toque duplo */
+async function run(p,okMsg,tabs=[],btn){if(btn)btn.disabled=true;
+  try{await p;if(okMsg)toast(okMsg);await refresh(tabs)}catch(e){console.error(e);toast(errMsg(e),1)}finally{if(btn)btn.disabled=false}}
+const emailDe=u=>`${u}@${EMAIL_DOMAIN}`;
+function log(acao){if(!sb||!meProfile)return;sb.from('logs').insert({usuario:meProfile.user,acao}).then(()=>agendar('logs'),()=>{})}
+const COLS={lanc:['id','data','tipo','categoria','torre','descricao','valor'],manut:['id','data','torre','tipo','prioridade','titulo','resp','custo','status'],
+  forn:['id','nome','doc','servico','contato','inicio','fim','valor','status']};
+const DATAS=['data','inicio','fim'],NUMS=['valor','custo'];
+function limpa(t,o){const r={};COLS[t].forEach(k=>{let v=o[k];if(DATAS.includes(k)&&!v)v=null;if(NUMS.includes(k))v=+v||0;if(v!==undefined)r[k]=v??null});if(!r.id)r.id=uid();return r}
+async function upsertLotes(t,rows){for(let i=0;i<rows.length;i+=500)await q(sb.from(t).upsert(rows.slice(i,i+500)))}
 
 /* ---------- Janela de confirmação (substitui confirm() do navegador) ---------- */
 function confirmBox(msg,okTxt='Confirmar',danger=true){return new Promise(res=>{
@@ -303,88 +304,93 @@ function calc(){
   return{saldo:rec-desp,despMes,fundo,contratos,teto,salao:salCred-salDeb,salCred,salDeb};
 }
 
-/* ---------- Conexão com o Firebase ---------- */
-async function loadFirebase(){
-  const base=`https://www.gstatic.com/firebasejs/${FB_VER}/`;
-  [A,AU,ST]=await Promise.all([import(base+'firebase-app.js'),import(base+'firebase-auth.js'),import(base+'firebase-firestore.js')]);
-  const app=A.initializeApp(FIREBASE_CONFIG);
-  auth=AU.getAuth(app);await AU.setPersistence(auth,AU.browserSessionPersistence);
-  fs=ST.getFirestore(app);
+/* ---------- Conexão com o Supabase ---------- */
+async function loadSupabase(){
+  SBM=await import(`https://cdn.jsdelivr.net/npm/@supabase/supabase-js@${SB_VER}/+esm`);
+  sb=SBM.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{storage:window.sessionStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 }
-const novoEmail=u=>`${u}.${uid()}@${EMAIL_DOMAIN}`;
-/* cria a conta de login sem deslogar o administrador (usa uma 2ª instância) */
+/* cria o login de outro usuário sem deslogar o administrador (usa um 2º cliente sem sessão) */
 async function criarConta(user,senha){
-  const sec=A.initializeApp(FIREBASE_CONFIG,'sec-'+uid());const sa=AU.getAuth(sec);
-  try{await AU.setPersistence(sa,AU.inMemoryPersistence);
-    const c=await AU.createUserWithEmailAndPassword(sa,novoEmail(user),senha);return{uid:c.user.uid,email:c.user.email}}
-  finally{await AU.signOut(sa).catch(()=>{});await A.deleteApp(sec).catch(()=>{})}
+  const sec=SBM.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'bv-sec-'+uid()}});
+  const tentar=()=>sec.auth.signUp({email:emailDe(user),password:senha});
+  try{
+    let r=await tentar();
+    if(r.error&&/already registered|already exists/i.test(r.error.message)){await q(sb.rpc('admin_remover_orfao',{email_alvo:emailDe(user)}));r=await tentar()}
+    if(r.error)throw r.error;
+    if(!r.data.session)throw{message:'Email not confirmed'};
+    return r.data.user.id;
+  }finally{await sec.auth.signOut().catch(()=>{})}
 }
 
 /* ---------- Login / sessão ---------- */
 function setBusy(b,txt){btnLogin.disabled=b;btnLogin.textContent=b?txt:'Acessar Sistema'}
-function showLogin(){stopListeners();meProfile=null;sessionUid=null;app.classList.add('hidden');login.classList.remove('hidden');toggleMenu(false);
+function showLogin(){pararTempoReal();meProfile=null;sessionUid=null;app.classList.add('hidden');login.classList.remove('hidden');toggleMenu(false);
   document.querySelectorAll('.modal-bg').forEach(m=>m.remove());main.innerHTML='';setBusy(false);
   if(location.hash)history.replaceState(null,'',location.pathname+location.search)}
 loginForm.onsubmit=async e=>{
-  e.preventDefault();if(!auth||btnLogin.disabled)return;
+  e.preventDefault();if(!sb||btnLogin.disabled)return;
   const u=lUser.value.trim().toLowerCase(),p=lPass.value;loginErr.textContent='';
   if(!u||!p){loginErr.textContent='Informe usuário e senha.';return}
-  setBusy(true,'Entrando...');
+  if(!/^[a-z0-9._-]+$/.test(u)){loginErr.textContent='Usuário ou senha inválidos.';return}
+  setBusy(true,'Entrando...');justLoggedIn=true;
   try{
-    const lg=await ST.getDoc(ref('logins',u));
-    if(lg.exists()){justLoggedIn=true;await AU.signInWithEmailAndPassword(auth,lg.data().email,p)}
-    else if(u==='admin'&&p===SENHA_PADRAO&&!(await ST.getDoc(ref('meta','bootstrap'))).exists())await bootstrapAdmin(p);
-    else throw{code:'auth/invalid-credential'};
+    const{error}=await sb.auth.signInWithPassword({email:emailDe(u),password:p});
+    if(error){
+      /* primeiro acesso: cria o login do admin */
+      if(u==='admin'&&p===SENHA_PADRAO&&/invalid/i.test(error.message)&&await q(sb.rpc('precisa_bootstrap'))){
+        const r=await sb.auth.signUp({email:emailDe('admin'),password:p});
+        if(r.error)throw r.error;if(!r.data.session)throw{message:'Email not confirmed'};
+      }else throw error;
+    }
     lPass.value='';
-  }catch(err){console.error(err);justLoggedIn=false;bootstrapping=false;loginErr.textContent=errMsg(err);setBusy(false)}
+  }catch(err){console.error(err);justLoggedIn=false;loginErr.textContent=errMsg(err);setBusy(false)}
 };
-/* primeiro acesso: cria o admin no banco online */
-async function bootstrapAdmin(p){
-  bootstrapping=true;
-  const c=await AU.createUserWithEmailAndPassword(auth,novoEmail('admin'),p);
-  const b=ST.writeBatch(fs);
-  b.set(ref('users',c.user.uid),{user:'admin',nome:'Admin',perfil:'Administrador',ativo:true});
-  b.set(ref('logins','admin'),{email:c.user.email,uid:c.user.uid});
-  b.set(ref('meta','bootstrap'),{ts:new Date().toISOString(),uid:c.user.uid});
-  await b.commit();
-  bootstrapping=false;justLoggedIn=true;await startSession(c.user);
-}
 async function startSession(user){
-  if(sessionUid===user.uid)return;sessionUid=user.uid;
+  if(sessionUid===user.id)return;sessionUid=user.id;
   setBusy(true,'Carregando...');
   try{
-    const s=await ST.getDoc(ref('users',user.uid));
-    if(!s.exists()||!s.data().ativo){const m=s.exists()?'Usuário inativo. Procure o administrador.':'Usuário sem acesso. Procure o administrador.';
-      await AU.signOut(auth);loginErr.textContent=m;return}
-    meProfile={id:user.uid,...s.data()};
-    await listen();
+    let p=await q(sb.from('perfis').select('*').eq('id',user.id).maybeSingle());
+    if(!p&&user.email===emailDe('admin')&&await q(sb.rpc('precisa_bootstrap'))){
+      await q(sb.rpc('bootstrap_admin'));p=await q(sb.from('perfis').select('*').eq('id',user.id).maybeSingle());
+    }
+    if(!p||!p.ativo){const m=p?'Usuário inativo. Procure o administrador.':'Usuário sem acesso. Procure o administrador.';
+      justLoggedIn=false;await sb.auth.signOut();loginErr.textContent=m;return}
+    meProfile=perfilApp(p);
+    await refresh(['lanc','manut','forn','users','logs','config']);
+    iniciarTempoReal();
     login.classList.add('hidden');app.classList.remove('hidden');setSideUser();
     go('dashboard'); // sempre abre no Dashboard & Torres
     if(justLoggedIn){log('Login realizado');justLoggedIn=false}
-  }catch(e){console.error(e);sessionUid=null;await AU.signOut(auth).catch(()=>{});loginErr.textContent=errMsg(e);setBusy(false)}
+  }catch(e){console.error(e);sessionUid=null;justLoggedIn=false;await sb.auth.signOut().catch(()=>{});loginErr.textContent=errMsg(e);setBusy(false)}
 }
+const perfilApp=p=>({id:p.id,user:p.usuario,nome:p.nome,perfil:p.perfil,ativo:p.ativo});
 function setSideUser(){userName.textContent=meProfile.nome;userRole.textContent=meProfile.perfil;userAvatar.textContent=(meProfile.nome[0]||'?').toUpperCase()}
 async function logout(){if(!(await confirmBox('Deseja sair do sistema?','Sair',false)))return;
-  log('Logout');await new Promise(r=>setTimeout(r,150));await AU.signOut(auth)}
+  log('Logout');await new Promise(r=>setTimeout(r,200));await sb.auth.signOut()}
 
-/* ---------- Dados em tempo real (todos os aparelhos veem as mesmas informações) ---------- */
-function stopListeners(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[];loaded.clear()}
-function listen(){
-  stopListeners();
-  return new Promise((resolve,reject)=>{
-    const total=6,timer=setTimeout(()=>reject({code:'unavailable'}),20000);
-    onLoaded=()=>{if(loaded.size>=total){clearTimeout(timer);onLoaded=null;resolve()}};
-    const sub=(key,q,map)=>unsubs.push(ST.onSnapshot(q,s=>{map(s);loaded.add(key);onLoaded?onLoaded():softRender()},
-      e=>{console.error(e);clearTimeout(timer);if(onLoaded){onLoaded=null;reject(e)}else if(e.code==='permission-denied'){toast('Seu acesso foi alterado. Entre novamente.',1);AU.signOut(auth)}}));
-    ['lanc','manut','forn'].forEach(c=>sub(c,col(c),s=>{db[c]=s.docs.map(d=>({...d.data(),id:d.id}))}));
-    sub('users',col('users'),s=>{db.users=s.docs.map(d=>({...d.data(),id:d.id}));
-      const eu=db.users.find(u=>u.id===sessionUid);
-      if(!onLoaded&&(!eu||!eu.ativo)){toast('Seu acesso foi desativado.',1);AU.signOut(auth);return}
-      if(eu){meProfile=eu;if(!app.classList.contains('hidden'))setSideUser()}});
-    sub('logs',ST.query(col('logs'),ST.orderBy('ts','desc'),ST.limit(300)),s=>{db.logs=s.docs.map(d=>d.data())});
-    sub('config',ref('config','main'),s=>{db.config={...DEF_CFG,...(s.exists()?s.data():{})}});
-  });
+/* ---------- Dados (todos os aparelhos veem as mesmas informações) ---------- */
+async function buscar(k){
+  if(k==='lanc'||k==='manut'||k==='forn'){db[k]=(await q(sb.from(k).select('*'))).map(r=>{const o={...r};NUMS.forEach(n=>{if(n in o)o[n]=+o[n]||0});DATAS.forEach(d=>{if(o[d]==null&&d!=='data')o[d]=''});return o});return}
+  if(k==='users'){db.users=(await q(sb.from('perfis').select('*'))).map(perfilApp);conferirAcesso();return}
+  if(k==='logs'){db.logs=(await q(sb.from('logs').select('ts,usuario,acao').order('ts',{ascending:false}).limit(300))).map(l=>({ts:l.ts,user:l.usuario,acao:l.acao}));return}
+  if(k==='config'){const r=await q(sb.from('config').select('*').eq('id','main').maybeSingle());db.config={...DEF_CFG,...(r?{salario:+r.salario,mult:+r.mult}:{})}}
 }
+async function refresh(ks){if(!ks||!ks.length)return;await Promise.all([...new Set(ks)].map(buscar));softRender()}
+function conferirAcesso(){if(!sessionUid||app.classList.contains('hidden'))return;const eu=db.users.find(u=>u.id===sessionUid);
+  if(!eu||!eu.ativo){toast('Seu acesso foi desativado.',1);sb.auth.signOut();return}meProfile=eu;setSideUser()}
+/* agrupa várias mudanças seguidas numa única atualização */
+function agendar(k){clearTimeout(timers[k]);timers[k]=setTimeout(()=>refresh([k]).catch(e=>console.warn(e)),150)}
+const TAB_KEY={perfis:'users',lanc:'lanc',manut:'manut',forn:'forn',logs:'logs',config:'config'};
+function iniciarTempoReal(){
+  pararTempoReal();
+  canal=sb.channel('bv-'+uid());
+  Object.keys(TAB_KEY).forEach(t=>canal.on('postgres_changes',{event:'*',schema:'public',table:t},()=>agendar(TAB_KEY[t])));
+  canal.subscribe();
+  /* segurança extra: se o tempo real cair (rede do celular), atualiza a cada 30s e ao voltar para a aba */
+  pollTimer=setInterval(()=>{if(!document.hidden)refresh(Object.values(TAB_KEY)).catch(()=>{})},30000);
+}
+function pararTempoReal(){if(canal&&sb){sb.removeChannel(canal).catch(()=>{})}canal=null;clearInterval(pollTimer);pollTimer=null}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sessionUid&&!app.classList.contains('hidden'))refresh(Object.values(TAB_KEY)).catch(()=>{})});
 
 /* ---------- Navegação e renderização ---------- */
 function toggleMenu(force){const open=force??!aside.classList.contains('open');aside.classList.toggle('open',open);backdrop.classList.toggle('show',open)}
@@ -557,7 +563,7 @@ banco(){
       ${isAdmin()?`<label class="btn sec"><i class="fa-solid fa-upload"></i>Importar backup<input type="file" accept=".json,application/json" hidden onchange="importDB(this)"></label>
       <button class="btn danger" onclick="resetDB()"><i class="fa-solid fa-trash"></i>Zerar banco</button>`:''}
     </div>
-    <p class="note">Os dados ficam salvos na nuvem (Firebase) e aparecem em todos os aparelhos. Faça backups periódicos.</p></div>
+    <p class="note">Os dados ficam salvos na nuvem (Supabase) e aparecem em todos os aparelhos. Faça backups periódicos.</p></div>
   <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-scroll"></i>Logs de Atividade</h4><small>últimos ${db.logs.length}</small></div>
     ${tbl(['Data/Hora','Usuário','Ação'],db.logs.map(l=>[dth(l.ts),esc(l.user),esc(l.acao)]),'Nenhum log.')}
   </div>`;
@@ -581,17 +587,13 @@ async function del(c,id){
   const it=db[c].find(x=>x.id===id);if(!it)return;
   const nome=c==='users'?it.user:(it.titulo||it.nome||`${it.tipo} ${brl(it.valor)}`);
   if(!(await confirmBox(`Confirma a exclusão de "${nome}"?`,'Excluir')))return;
-  if(c==='users'){
-    const ops=[{del:1,ref:ref('users',id)}];const lg=await ST.getDoc(ref('logins',it.user)).catch(()=>null);
-    if(lg&&lg.exists()&&lg.data().uid===id)ops.push({del:1,ref:ref('logins',it.user)});
-    return run(batchWrite(ops).then(()=>log(`Usuário excluído: ${it.user}`)),'Usuário excluído.');
-  }
-  run(ST.deleteDoc(ref(c,id)).then(()=>log(`Exclusão em ${c}: ${nome}`)),'Registro excluído.');
+  if(c==='users')return run(q(sb.rpc('admin_excluir_usuario',{alvo:id})).then(()=>log(`Usuário excluído: ${it.user}`)),'Usuário excluído.',['users']);
+  run(q(sb.from(c).delete().eq('id',id)).then(()=>log(`Exclusão em ${c}: ${nome}`)),'Registro excluído.',[c]);
 }
-function setStatus(id,s){const m=db.manut.find(x=>x.id===id);if(!m)return;run(ST.updateDoc(ref('manut',id),{status:s}).then(()=>log(`Manutenção "${m.titulo}" → ${s}`)),'Status atualizado.')}
-function setForn(id,s){const f=db.forn.find(x=>x.id===id);if(!f)return;run(ST.updateDoc(ref('forn',id),{status:s}).then(()=>log(`Contrato "${f.nome}" → ${s}`)),'Status atualizado.')}
+function setStatus(id,s){const m=db.manut.find(x=>x.id===id);if(!m)return;run(q(sb.from('manut').update({status:s}).eq('id',id)).then(()=>log(`Manutenção "${m.titulo}" → ${s}`)),'Status atualizado.',['manut'])}
+function setForn(id,s){const f=db.forn.find(x=>x.id===id);if(!f)return;run(q(sb.from('forn').update({status:s}).eq('id',id)).then(()=>log(`Contrato "${f.nome}" → ${s}`)),'Status atualizado.',['forn'])}
 function toggleUser(id){const u=db.users.find(x=>x.id===id);if(!u)return;
-  run(ST.updateDoc(ref('users',id),{ativo:!u.ativo}).then(()=>log(`Usuário ${u.user} ${u.ativo?'inativado':'ativado'}`)),u.ativo?'Usuário inativado.':'Usuário ativado.')}
+  run(q(sb.from('perfis').update({ativo:!u.ativo}).eq('id',id)).then(()=>log(`Usuário ${u.user} ${u.ativo?'inativado':'ativado'}`)),u.ativo?'Usuário inativado.':'Usuário ativado.',['users'])}
 function resetUser(id){
   const u=db.users.find(x=>x.id===id);if(!u)return;const bg=document.createElement('div');bg.className='modal-bg';
   bg.innerHTML=`<form class="modal form" style="display:block" autocomplete="off"><h4>Redefinir senha — ${esc(u.user)}</h4>
@@ -601,9 +603,7 @@ function resetUser(id){
   const fechar=()=>{bg.remove();softRender()};
   bg.querySelector('[data-x]').onclick=fechar;
   bg.querySelector('form').onsubmit=async e=>{e.preventDefault();const btn=e.target.querySelector('button:not([type=button])');btn.disabled=true;btn.textContent='Salvando...';
-    try{const c=await criarConta(u.user,e.target.nova.value);
-      await batchWrite([{ref:ref('users',c.uid),data:semId(u)},{del:1,ref:ref('users',u.id)},{ref:ref('logins',u.user),data:{email:c.email,uid:c.uid}}]);
-      log(`Senha redefinida: ${u.user}`);fechar();toast('Senha redefinida.')}
+    try{await q(sb.rpc('admin_definir_senha',{alvo:u.id,nova:e.target.nova.value}));log(`Senha redefinida: ${u.user}`);fechar();toast('Senha redefinida.')}
     catch(err){console.error(err);toast(errMsg(err),1);btn.disabled=false;btn.textContent='Salvar'}};
 }
 function exportDB(){
@@ -613,9 +613,9 @@ function exportDB(){
   a.download=`bluevillage-backup-${today()}.json`;document.body.appendChild(a);a.click();
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000);log('Backup exportado');toast('Backup gerado.')}
 async function enviarDados(d){
-  const ops=[];['lanc','manut','forn'].forEach(c=>(d[c]||[]).forEach(x=>ops.push({ref:ref(c,String(x.id||uid())),data:semId(x)})));
-  if(d.config&&d.config.salario)ops.push({ref:ref('config','main'),data:{salario:+d.config.salario,mult:+d.config.mult||DEF_CFG.mult}});
-  await batchWrite(ops);return ops.length;
+  let n=0;for(const t of ['lanc','manut','forn']){const rows=(d[t]||[]).map(x=>limpa(t,x));await upsertLotes(t,rows);n+=rows.length}
+  if(d.config&&+d.config.salario)await q(sb.from('config').upsert({id:'main',salario:+d.config.salario,mult:+d.config.mult||DEF_CFG.mult}));
+  await refresh(['lanc','manut','forn','config']);return n;
 }
 function importDB(inp){const f=inp.files[0];inp.value='';if(!f)return;const r=new FileReader();
   r.onload=async()=>{let d;try{d=JSON.parse(r.result);if(!Array.isArray(d.lanc))throw 0}catch(e){return toast('Arquivo de backup inválido.',1)}
@@ -633,38 +633,40 @@ async function descartarLegado(){if(!(await confirmBox('Descartar os dados antig
 async function resetDB(){
   if(!(await confirmBox('Isso apagará TODOS os lançamentos, manutenções, contratos e logs da nuvem, em todos os aparelhos. Os usuários são mantidos. Continuar?','Zerar banco')))return;
   if(!(await confirmBox('Tem certeza? Esta ação não pode ser desfeita.','Sim, zerar tudo')))return;
-  try{const ops=[];for(const c of ['lanc','manut','forn','logs']){const s=await ST.getDocs(col(c));s.forEach(d=>ops.push({del:1,ref:d.ref}))}
-    await batchWrite(ops);log('Banco zerado');toast('Banco zerado.')}catch(e){console.error(e);toast(errMsg(e),1)}}
+  try{for(const t of ['lanc','manut','forn'])await q(sb.from(t).delete().neq('id',''));await q(sb.from('logs').delete().gt('id',0));
+    log('Banco zerado');toast('Banco zerado.');await refresh(['lanc','manut','forn','logs'])}catch(e){console.error(e);toast(errMsg(e),1)}}
 
+const btnDe=f=>f.querySelector('.btn');
 const AFTER={
 financeiro(){
-  fLanc.onsubmit=e=>{e.preventDefault();const d=formData(e.target);d.valor=parseValor(d.valor);
+  fLanc.onsubmit=e=>{e.preventDefault();if(btnDe(e.target).disabled)return;const f=e.target,d=formData(f);d.valor=parseValor(d.valor);
     if(!(d.valor>0))return toast('Informe um valor válido (ex.: 1.250,00).',1);
-    const f=e.target;f.reset();f.data.value=d.data;f.tipo.value=d.tipo;f.categoria.value=d.categoria;f.torre.value=d.torre;f.descricao.value=d.descricao;
-    run(ST.setDoc(ref('lanc',uid()),d).then(()=>log(`Lançamento ${d.tipo}: ${d.descricao} (${brl(d.valor)})`)),'Lançamento salvo.')};
-  fCfg.onsubmit=e=>{e.preventDefault();const d=formData(e.target),s=parseValor(d.salario),m=parseValor(d.mult);
-    if(!(s>0)||!(m>0))return toast('Informe valores válidos.',1);e.target.querySelector('input').blur();
-    run(ST.setDoc(ref('config','main'),{salario:s,mult:m}).then(()=>log('Parâmetros do teto atualizados')),'Parâmetros atualizados.')};
+    f.reset();f.data.value=d.data;f.tipo.value=d.tipo;f.categoria.value=d.categoria;f.torre.value=d.torre;f.descricao.value=d.descricao;
+    run(q(sb.from('lanc').insert(limpa('lanc',d))).then(()=>log(`Lançamento ${d.tipo}: ${d.descricao} (${brl(d.valor)})`)),'Lançamento salvo.',['lanc'],btnDe(f))};
+  fCfg.onsubmit=e=>{e.preventDefault();if(btnDe(e.target).disabled)return;const f=e.target,d=formData(f),s=parseValor(d.salario),m=parseValor(d.mult);
+    if(!(s>0)||!(m>0))return toast('Informe valores válidos.',1);f.querySelector('input').blur();
+    run(q(sb.from('config').upsert({id:'main',salario:s,mult:m})).then(()=>log('Parâmetros do teto atualizados')),'Parâmetros atualizados.',['config'],btnDe(f))};
 },
-manutencao(){fMan.onsubmit=e=>{e.preventDefault();const d=formData(e.target);d.custo=parseValor(d.custo);if(isNaN(d.custo))d.custo=0;
-  if(d.custo<0)return toast('Custo inválido.',1);d.status='Aberta';e.target.reset();e.target.data.value=today();
-  run(ST.setDoc(ref('manut',uid()),d).then(()=>log(`Manutenção registrada (${d.torre}): ${d.titulo}`)),'Registro salvo.')}},
-fornecedores(){fForn.onsubmit=e=>{e.preventDefault();const d=formData(e.target);d.valor=parseValor(d.valor);if(isNaN(d.valor))d.valor=0;
-  if(d.valor<0)return toast('Valor inválido.',1);if(d.inicio&&d.fim&&d.fim<d.inicio)return toast('O término deve ser depois do início.',1);e.target.reset();
-  run(ST.setDoc(ref('forn',uid()),d).then(()=>log(`Fornecedor cadastrado: ${d.nome}`)),'Fornecedor salvo.')}},
+manutencao(){fMan.onsubmit=e=>{e.preventDefault();if(btnDe(e.target).disabled)return;const f=e.target,d=formData(f);d.custo=parseValor(d.custo);if(isNaN(d.custo))d.custo=0;
+  if(d.custo<0)return toast('Custo inválido.',1);d.status='Aberta';f.reset();f.data.value=today();
+  run(q(sb.from('manut').insert(limpa('manut',d))).then(()=>log(`Manutenção registrada (${d.torre}): ${d.titulo}`)),'Registro salvo.',['manut'],btnDe(f))}},
+fornecedores(){fForn.onsubmit=e=>{e.preventDefault();if(btnDe(e.target).disabled)return;const f=e.target,d=formData(f);d.valor=parseValor(d.valor);if(isNaN(d.valor))d.valor=0;
+  if(d.valor<0)return toast('Valor inválido.',1);if(d.inicio&&d.fim&&d.fim<d.inicio)return toast('O término deve ser depois do início.',1);f.reset();
+  run(q(sb.from('forn').insert(limpa('forn',d))).then(()=>log(`Fornecedor cadastrado: ${d.nome}`)),'Fornecedor salvo.',['forn'],btnDe(f))}},
 usuarios(){
-  if(window.fUser)fUser.onsubmit=async e=>{e.preventDefault();const f=e.target,d=formData(f),u=d.user.trim().toLowerCase(),btn=f.querySelector('.btn');
+  if(window.fUser)fUser.onsubmit=async e=>{e.preventDefault();const f=e.target,d=formData(f),u=d.user.trim().toLowerCase(),btn=btnDe(f);
     if(!/^[a-z0-9._-]+$/.test(u))return toast('Usuário inválido: use letras, números, ponto, hífen ou sublinhado.',1);
+    if(db.users.some(x=>x.user===u))return toast('Este usuário já existe.',1);
     btn.disabled=true;
-    try{if((await ST.getDoc(ref('logins',u))).exists())throw{code:'auth/email-already-in-use'};
-      const c=await criarConta(u,d.senha);
-      await batchWrite([{ref:ref('users',c.uid),data:{user:u,nome:d.nome.trim(),perfil:d.perfil,ativo:true}},{ref:ref('logins',u),data:{email:c.email,uid:c.uid}}]);
-      f.reset();log(`Usuário criado: ${u} (${d.perfil})`);toast('Usuário criado.')}
+    try{const id=await criarConta(u,d.senha);
+      await q(sb.from('perfis').insert({id,usuario:u,nome:d.nome.trim(),perfil:d.perfil,ativo:true}));
+      f.reset();log(`Usuário criado: ${u} (${d.perfil})`);toast('Usuário criado.');await refresh(['users'])}
     catch(err){console.error(err);toast(errMsg(err),1)}finally{btn.disabled=false}};
-  fPass.onsubmit=async e=>{e.preventDefault();const f=e.target,d=formData(f),btn=f.querySelector('.btn'),cu=auth.currentUser;btn.disabled=true;
-    try{await AU.reauthenticateWithCredential(cu,AU.EmailAuthProvider.credential(cu.email,d.atual));
-      await AU.updatePassword(cu,d.nova);f.reset();log('Senha alterada');toast('Senha alterada.')}
-    catch(err){console.error(err);toast(/invalid-credential|wrong-password/.test(err.code)?'Senha atual incorreta.':errMsg(err),1)}finally{btn.disabled=false}};
+  fPass.onsubmit=async e=>{e.preventDefault();const f=e.target,d=formData(f),btn=btnDe(f);btn.disabled=true;
+    try{const{data:{user}}=await sb.auth.getUser();
+      const r=await sb.auth.signInWithPassword({email:user.email,password:d.atual});if(r.error)throw{message:'atual-incorreta'};
+      await q(sb.auth.updateUser({password:d.nova}));f.reset();log('Senha alterada');toast('Senha alterada.')}
+    catch(err){console.error(err);toast(err.message==='atual-incorreta'?'Senha atual incorreta.':errMsg(err),1)}finally{btn.disabled=false}};
 }};
 
 /* ---------- Olho: mostrar/ocultar senha ---------- */
@@ -686,9 +688,10 @@ function addEyes(root){
 /* ---------- Início ---------- */
 (async()=>{
   addEyes(document);setBusy(true,'Conectando...');
-  if(!FIREBASE_CONFIG.apiKey){loginErr.textContent='Sistema ainda não configurado: falta a configuração do Firebase (veja o README).';setBusy(true,'Indisponível');return}
-  try{await loadFirebase()}catch(e){console.error(e);loginErr.textContent='Não foi possível conectar ao servidor. Verifique a internet e recarregue a página.';setBusy(true,'Sem conexão');return}
-  AU.onAuthStateChanged(auth,user=>{if(bootstrapping)return;if(user)startSession(user);else showLogin()});
+  if(!SUPABASE_URL||!SUPABASE_ANON_KEY){loginErr.textContent='Sistema ainda não configurado: falta a configuração do Supabase (veja o README).';setBusy(true,'Indisponível');return}
+  try{await loadSupabase()}catch(e){console.error(e);loginErr.textContent='Não foi possível conectar ao servidor. Verifique a internet e recarregue a página.';setBusy(true,'Sem conexão');return}
+  /* o Supabase recomenda não chamar o banco direto dentro deste evento: por isso o setTimeout */
+  sb.auth.onAuthStateChange((ev,session)=>{setTimeout(()=>{if(session&&session.user)startSession(session.user);else showLogin()},0)});
 })();
 </script>
 </body>
