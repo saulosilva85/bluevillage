@@ -470,9 +470,9 @@ function addEyes(root){
   root.querySelectorAll('input[type=password]:not([data-eye])').forEach(inp=>{
     inp.dataset.eye='1';
     const w=document.createElement('span');w.className='pw-wrap';inp.before(w);w.appendChild(inp);
-    const b=document.createElement('button');b.type='button';b.className='pw-eye';b.innerHTML=EYE;
+    const b=document.createElement('button');b.type='button';b.className='pw-eye';b.innerHTML=EYE_OFF;
     b.title='Mostrar senha';b.setAttribute('aria-label','Mostrar senha');
-    b.onclick=()=>{const show=inp.type==='password';inp.type=show?'text':'password';b.innerHTML=show?EYE_OFF:EYE;
+    b.onclick=()=>{const show=inp.type==='password';inp.type=show?'text':'password';b.innerHTML=show?EYE:EYE_OFF;
       b.title=show?'Ocultar senha':'Mostrar senha';b.setAttribute('aria-label',b.title);inp.focus()};
     w.appendChild(b);
   });
