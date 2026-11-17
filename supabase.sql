@@ -167,6 +167,19 @@ grant  execute on function public.admin_definir_senha(uuid, text)    to authenti
 grant  execute on function public.admin_excluir_usuario(uuid)        to authenticated;
 grant  execute on function public.admin_remover_orfao(text)          to authenticated;
 
+-- ---------- Manutenção concluída não pode mudar de status ----------
+create or replace function public.bv_travar_concluida() returns trigger
+language plpgsql as $$
+begin
+  if old.status = 'Concluída' and new.status is distinct from old.status then
+    raise exception 'Registro concluído: o status não pode mais ser alterado';
+  end if;
+  return new;
+end $$;
+drop trigger if exists bv_travar_concluida on public.manut;
+create trigger bv_travar_concluida before update on public.manut
+  for each row execute function public.bv_travar_concluida();
+
 -- ---------- Confirmação automática dos logins internos ----------
 -- Os logins do sistema usam e-mails internos (@bluevillage.app) que não recebem mensagens.
 -- Esta regra marca esses logins como confirmados no momento em que são criados.
