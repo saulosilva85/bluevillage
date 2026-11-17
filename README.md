@@ -8,14 +8,11 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 
 ---
 
-## 🔐 Acesso inicial
+## 🔐 Acesso
 
-| Usuário | Senha |
-|---------|-------|
-| `admin` | `Blue@2027!` |
-
-> ⚠️ O link é público. **Troque a senha no primeiro acesso** em *Gestão de Usuários → Alterar Minha Senha*.
-> O primeiro login com `admin` / `Blue@2027!` cria o administrador no banco online. Faça isso logo depois de configurar o Supabase.
+- O usuário administrador é o `admin`. A **senha inicial** foi repassada à gestão e **não fica publicada** neste repositório.
+- ⚠️ O link é público. **Troque a senha no primeiro acesso** em *Gestão de Usuários → Alterar Minha Senha*.
+- Os demais usuários são criados pelo Administrador em *Gestão de Usuários*.
 
 - Todos os campos de senha têm o botão de **olho**. 👁️‍🗨️ Olho riscado: senha oculta. 👁️ Olho aberto: senha visível.
 - Nos campos de **senha nova** (Novo Usuário, Nova senha e Redefinir senha), o navegador não sugere "senha forte" nem pede para salvar a senha. A pessoa escolhe a senha que quiser, com no mínimo 6 caracteres.
@@ -51,7 +48,7 @@ Cada lançamento tem **Data, Tipo, Categoria, Torre, Descrição e Valor**.
 - **Descrição:** lista de seleção com **Crédito** ou **Débito**.
 - **Categorias:** Taxa Condominial, Água, Energia, Folha de Pagamento, Manutenção, Limpeza, Segurança, Administrativo e Outros.
 - O topo da tela Financeiro mostra o resumo: Saldo, Fundo e Salão.
-- **Calendário próprio** em todos os campos de data, no visual do sistema e no formato dd/mm/aaaa. Ele tem setas e listas próprias de mês e ano (iguais no computador e no celular; anos de 1950 até 50 anos à frente do ano atual) para ir rápido a outra data, além dos botões **Hoje** e **Limpar**. Hoje fica com contorno azul e fins de semana em azul-claro. No celular, abre no centro da tela com botões grandes. O calendário fecha sozinho ao tocar fora dele, ao abrir o menu, ao trocar de tela ou com a tecla Esc.
+- **Calendário próprio** em todos os campos de data do sistema (Financeiro, Manutenção, Fornecedores e filtros), no visual do sistema e no formato dd/mm/aaaa. Ele tem setas e listas próprias de mês e ano (iguais no computador e no celular; anos de 1950 até 50 anos à frente do ano atual) para ir rápido a outra data, além dos botões **Hoje** e **Limpar**. Hoje fica com contorno azul e fins de semana em azul-claro. No celular, abre no centro da tela com botões grandes. O calendário fecha sozinho ao tocar fora dele, ao abrir o menu, ao trocar de tela ou com a tecla Esc.
 - **Filtros da lista de lançamentos:**
   - Período **De / Até**. O calendário destaca a faixa escolhida.
   - Atalhos: **Hoje, Últimos 7 dias, Este mês, Mês passado, Este ano e Tudo**.
@@ -82,7 +79,7 @@ Cada lançamento tem **Data, Tipo, Categoria, Torre, Descrição e Valor**.
 ### Banco & Logs
 - **Exportar backup** (`.json`), disponível para qualquer usuário. Veja a seção **Backup** abaixo.
 - **Importar backup** (somente Administrador): os usuários não são importados.
-- **Zerar banco** (somente Administrador, com confirmação e **senha do administrador**, conferida pelo banco): apaga lançamentos, manutenções, contratos, logs e **todos os usuários**, em todos os aparelhos. Só o usuário `admin` permanece, com a **senha padrão** `Blue@2027!`. Depois de zerar, o sistema volta direto para a tela de login, sem aviso: entre com o admin e troque a senha.
+- **Zerar banco** (somente Administrador, com confirmação e **senha do administrador**, conferida pelo banco): apaga lançamentos, manutenções, contratos, logs e **todos os usuários**, em todos os aparelhos. Só o usuário `admin` permanece, com a **senha inicial**. Depois de zerar, o sistema volta direto para a tela de login, sem aviso: entre com o admin e **troque a senha logo em seguida**.
 - **Log de atividades:** logins, cadastros, exclusões e alterações, com data, hora e usuário.
 
 ---
@@ -172,7 +169,7 @@ O painel do Supabase é em inglês, por isso os nomes dos botões estão em ingl
 
 **6. Primeiro acesso**
 1. Publique (merge no `main`) e aguarde o ✅ na aba **Actions**.
-2. Abra o site e entre com `admin` / `Blue@2027!`. Esse primeiro login cria o administrador.
+2. Abra o site e entre com o usuário `admin` e a senha inicial. Esse primeiro login cria o administrador.
 3. Troque a senha em *Gestão de Usuários → Alterar Minha Senha*.
 
 ---
@@ -195,6 +192,7 @@ O painel do Supabase é em inglês, por isso os nomes dos botões estão em ingl
 | *Login por e-mail desativado no Supabase* | Ative o provedor **Email** (passo 4 da configuração). |
 | *Login não confirmado* | Execute de novo o `supabase.sql` no SQL Editor e confira se **Confirm email** está desligado. |
 | *Usuário ou senha inválidos* | Confira o login e a senha. Para esquecimento de senha, o Administrador usa **Redefinir senha** (ícone 🔄) em *Gestão de Usuários*. |
+| Esqueci a senha do `admin` | Outro usuário com perfil **Administrador** pode usar **Redefinir senha** (ícone 🔄). Por isso, vale ter **dois administradores**. |
 | *Usuário inativo* / *Usuário sem acesso* | O Administrador precisa ativar ou recriar o usuário. |
 | *Banco não preparado* | Execute o `supabase.sql` no SQL Editor. |
 | *Sem conexão com a internet* | Verifique a internet. Se o Supabase estiver pausado, clique em **Restore project** no painel. |
