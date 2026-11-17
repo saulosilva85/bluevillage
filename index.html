@@ -322,6 +322,7 @@ function errMsg(e){
   if(/signups not allowed|signup_disabled/i.test(m+c))return 'Cadastro de logins desativado no Supabase: ative "Allow new users to sign up" (veja o README).';
   if(/rate limit|too many/i.test(m))return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
   if(/failed to fetch|networkerror|network request failed|load failed|sem-conexao/i.test(m+c))return 'Sem conexão com a internet. Verifique e tente novamente.';
+  if(/conclu[ií]do n[ãa]o pode ser exclu/i.test(m))return 'Registro concluído não pode ser excluído.';
   if(/registro conclu/i.test(m))return 'Registro concluído: o status não pode mais ser alterado.';
   if(c==='42501'||/row-level security|não autorizado|permission/i.test(m))return 'Sem permissão para esta ação.';
   if(/password should be|weak/i.test(m))return 'Senha fraca: use no mínimo 6 caracteres.';
@@ -673,7 +674,7 @@ manutencao(){
       `<span style="color:${TCOR[m.torre]||'#cbd5e1'}">${esc(m.torre)}</span>`,esc(m.tipo),esc(m.titulo),prioTag(m.prioridade),esc(m.resp||'-'),brl(m.custo),
       m.status==='Concluída'?`<span class="tag concl" title="Registro concluído: o status não pode mais ser alterado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Concluída</span>`
         :`<select aria-label="Status" onchange="setStatus('${m.id}',this.value)">${['Aberta','Em andamento','Concluída'].map(s=>`<option ${s===m.status?'selected':''}>${s}</option>`).join('')}</select>`,
-      delBtn('manut',m.id)]),todos.length?'Nenhum registro encontrado com esses filtros.':'Nenhuma manutenção registrada.')}
+      m.status==='Concluída'?'':delBtn('manut',m.id)]),todos.length?'Nenhum registro encontrado com esses filtros.':'Nenhuma manutenção registrada.')}
   </div>`;
 },
 fornecedores(){
@@ -762,6 +763,7 @@ function delBtn(c,id){return `<button class="icon-btn del" title="Excluir" aria-
 async function del(c,id){
   if(c==='users'&&!isAdmin())return;
   const it=db[c].find(x=>x.id===id);if(!it)return;
+  if(c==='manut'&&it.status==='Concluída')return toast('Registro concluído não pode ser excluído.',1);
   const nome=c==='users'?it.user:(it.titulo||it.nome||`${it.tipo} ${brl(it.valor)}`);
   if(!(await confirmBox(`Confirma a exclusão de "${nome}"?`,'Excluir')))return;
   if(c==='users')return run(q(sb.rpc('admin_excluir_usuario',{alvo:id})).then(()=>log(`Usuário excluído: ${it.user}`)),'Usuário excluído.',['users']);
@@ -813,7 +815,7 @@ async function descartarLegado(){if(!(await confirmBox('Descartar os dados antig
 async function resetDB(){
   if(!(await confirmBox('Isso apagará TODOS os lançamentos, manutenções, contratos e logs da nuvem, em todos os aparelhos. Os usuários são mantidos. Continuar?','Zerar banco')))return;
   if(!(await confirmBox('Tem certeza? Esta ação não pode ser desfeita.','Sim, zerar tudo')))return;
-  try{for(const t of ['lanc','manut','forn'])await q(sb.from(t).delete().neq('id',''));await q(sb.from('logs').delete().gt('id',0));
+  try{await q(sb.rpc('admin_zerar_banco'));
     log('Banco zerado');toast('Banco zerado.');await refresh(['lanc','manut','forn','logs'])}catch(e){console.error(e);toast(errMsg(e),1)}}
 
 const AFTER={
