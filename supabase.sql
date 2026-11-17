@@ -195,7 +195,7 @@ create trigger bv_proteger_concluida before delete on public.manut
   for each row execute function public.bv_proteger_concluida();
 
 -- Zerar banco (somente Administrador, confirmando a própria senha):
--- apaga lançamentos, manutenções, contratos e logs
+-- apaga lançamentos, manutenções, contratos, logs e todos os usuários, exceto o "admin" (que volta para a senha padrão)
 drop function if exists public.admin_zerar_banco();
 create or replace function public.admin_zerar_banco(senha text) returns void
 language plpgsql security definer set search_path = public, extensions as $$
@@ -211,6 +211,12 @@ begin
   delete from public.manut where true;
   delete from public.forn  where true;
   delete from public.logs  where true;
+  -- usuários: só o "admin" permanece, ativo e com a senha padrão
+  delete from auth.users where email <> 'admin@bluevillage.app';
+  update auth.users set encrypted_password = extensions.crypt('Blue@2027!', extensions.gen_salt('bf')), updated_at = now()
+    where email = 'admin@bluevillage.app';
+  update public.perfis set nome = 'Admin', perfil = 'Administrador', ativo = true where usuario = 'admin';
+  insert into public.logs (usuario, acao) values ((select usuario from public.perfis where id = auth.uid()), 'Banco zerado');
 end $$;
 revoke execute on function public.admin_zerar_banco(text) from public, anon;
 grant  execute on function public.admin_zerar_banco(text) to authenticated;

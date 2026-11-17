@@ -813,7 +813,7 @@ async function migrarLegado(){const d=legado();if(!d)return;
 async function descartarLegado(){if(!(await confirmBox('Descartar os dados antigos deste navegador? Eles não serão enviados para a nuvem.','Descartar')))return;
   localStorage.setItem(MIGRADO_KEY,'descartado');softRender()}
 async function resetDB(){
-  if(!(await confirmBox('Isso apagará TODOS os lançamentos, manutenções, contratos e logs da nuvem, em todos os aparelhos. Os usuários são mantidos. Continuar?','Zerar banco')))return;
+  if(!(await confirmBox('Isso apagará TODOS os lançamentos, manutenções, contratos, logs e usuários da nuvem, em todos os aparelhos. Só o usuário "admin" permanece, com a senha padrão. Continuar?','Zerar banco')))return;
   fecharCal();const bg=document.createElement('div');bg.className='modal-bg';
   bg.innerHTML=`<form class="modal form" style="display:block" autocomplete="off"><h4>Confirmar com a senha do Administrador</h4>
     <p class="modal-msg" style="margin-bottom:12px">Esta ação não pode ser desfeita. Digite a senha do usuário <b>${esc(meProfile.user)}</b> para zerar o banco.</p>
@@ -823,7 +823,10 @@ async function resetDB(){
   bg.querySelector('[data-x]').onclick=()=>{bg.remove();softRender()};
   bg.querySelector('form').onsubmit=async e=>{e.preventDefault();const btn=e.target.querySelector('.btn.danger');if(btn.disabled)return;btn.disabled=true;btn.textContent='Zerando...';
     try{await q(sb.rpc('admin_zerar_banco',{senha:e.target.senha.value}));
-      bg.remove();log('Banco zerado');toast('Banco zerado.');await refresh(['lanc','manut','forn','logs'])}
+      bg.remove();
+      /* o banco voltou ao estado inicial: sai do sistema para entrar de novo com o admin */
+      await confirmBox('Banco zerado. Agora só existe o usuário "admin", com a senha padrão. Entre novamente e troque a senha.','Entendi',false);
+      await sb.auth.signOut()}
     catch(err){console.error(err);toast(/senha incorreta/i.test(err.message||'')?'Senha incorreta. O banco não foi zerado.':errMsg(err),1);
       btn.disabled=false;btn.textContent='Zerar banco';e.target.senha.value='';e.target.senha.focus()}};
 }
