@@ -134,6 +134,42 @@ td select{background:var(--bg);color:#fff;border:1px solid var(--border);border-
   padding:12px 16px;border-radius:8px;font-size:14px;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .toast.err{border-left-color:var(--red)}
 .note{font-size:12.5px;color:var(--muted);margin-top:10px}
+/* ---- campo de data + calendário próprio ---- */
+.dp-btn{width:100%;height:38px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:#fff;padding:0 10px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font-size:14px;text-align:left}
+.dp-btn:focus-visible,.dp-btn.open{border-color:var(--blue-l);outline:none}
+.dp-btn .vazio{color:#64748b}
+.dp-btn svg{width:18px;height:18px;color:var(--blue-l);flex-shrink:0}
+#dp{position:fixed;z-index:70;width:320px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;
+  box-shadow:0 18px 40px rgba(0,0,0,.55);user-select:none}
+#dp .dp-h{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+#dp .dp-h select[data-a]{flex:0 0 86px}
+#dp .dp-h select{flex:1;min-width:0;height:34px;background:var(--bg);color:#fff;border:1px solid var(--border);border-radius:7px;padding:0 6px;font-weight:600}
+#dp .dp-nav{width:34px;height:34px;flex-shrink:0;border:0;border-radius:7px;background:#273449;color:#fff;cursor:pointer;display:grid;place-items:center}
+#dp .dp-nav svg{width:16px;height:16px}
+#dp .dp-g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+#dp .dp-w{font-size:11.5px;color:var(--muted);font-weight:700;padding:4px 0}
+#dp .dp-d{height:36px;border:0;border-radius:8px;background:none;color:#e2e8f0;cursor:pointer;font-size:14px}
+#dp .dp-d.fora{color:#475569}
+#dp .dp-d.fds{color:#93c5fd}#dp .dp-d.fora.fds{color:#475569}
+#dp .dp-d.hoje{box-shadow:inset 0 0 0 1.5px var(--blue-l);font-weight:700}
+#dp .dp-d.faixa{background:rgba(37,99,235,.18);border-radius:0}
+#dp .dp-d.sel{background:var(--blue);color:#fff;font-weight:700;border-radius:8px}
+#dp .dp-f{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+#dp .dp-f button{background:none;border:0;color:var(--blue-l);font-weight:600;cursor:pointer;padding:8px 10px;border-radius:7px;font-size:14px}
+@media(hover:hover){#dp .dp-d:hover{background:#273449}#dp .dp-d.sel:hover{background:#1d4ed8}#dp .dp-nav:hover,#dp .dp-f button:hover{background:#334155}}
+#dp-bg{position:fixed;inset:0;z-index:69;background:rgba(2,6,23,.55);display:none}
+/* ---- filtros ---- */
+.filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end;margin-bottom:12px}
+.filtros label{font-size:12.5px;color:var(--muted);display:block;margin-bottom:5px}
+.filtros select{width:100%;height:38px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:#fff;padding:0 10px}
+.atalhos{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.atalho{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--border);background:var(--bg);color:#cbd5e1;cursor:pointer;font-size:13px;font-weight:600}
+.atalho.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.atalho.limpar{color:var(--red);border-color:#7f1d2d}
+@media(hover:hover){.atalho:not(.on):hover{background:#273449}}
+.resumo-flt{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);margin-bottom:12px}
+.resumo-flt b:not(.g):not(.r){color:#e2e8f0}
 /* olho de mostrar/ocultar senha */
 .pw-wrap{position:relative;display:block}
 .pw-wrap input{padding-right:46px!important}
@@ -164,8 +200,14 @@ td select{background:var(--bg);color:#fff;border:1px solid var(--border);border-
   .page-head h2{font-size:18px}.chip{font-size:12px}
   .towers{gap:12px}
   .form{grid-template-columns:1fr 1fr}.span2{grid-column:1/-1}
-  .form input,.form select,.login-card input,td select{font-size:16px} /* evita zoom automático no iPhone */
-  .form input,.form select,.btn{height:44px}
+  .form input,.form select,.login-card input,td select,.filtros select{font-size:16px} /* evita zoom automático no iPhone */
+  .form input,.form select,.btn,.dp-btn,.filtros select{height:44px}
+  .filtros{grid-template-columns:1fr 1fr}
+  .atalho{height:40px;padding:0 14px}
+  .dp-btn{font-size:16px}
+  #dp{left:50%!important;top:50%!important;transform:translate(-50%,-50%);width:min(340px,94vw)}
+  #dp .dp-d{height:42px;font-size:16px}#dp .dp-nav{width:42px;height:42px}#dp .dp-h select{height:42px;font-size:16px}
+  #dp-bg.show{display:block}
   .form>div:has(>.btn){grid-column:1/-1}.form .btn{width:100%}
   td select{height:40px}
   .icon-btn{min-width:42px;min-height:42px;font-size:16px}
@@ -412,7 +454,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sessionUi
 /* ---------- Navegação e renderização ---------- */
 function toggleMenu(force){const open=force??!aside.classList.contains('open');aside.classList.toggle('open',open);backdrop.classList.toggle('show',open)}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>{go(n.dataset.page);toggleMenu(false)});
-function editando(){const a=document.activeElement;return !!document.querySelector('.modal-bg')||(!!a&&main.contains(a)&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))}
+function editando(){const a=document.activeElement;return !!document.querySelector('.modal-bg')||dpAlvo!==null||(!!a&&main.contains(a)&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))}
 /* atualiza a tela quando chegam dados de outro aparelho, sem apagar o que está sendo digitado */
 function softRender(){if(app.classList.contains('hidden'))return;if(editando()){pendingRender=true;return}pendingRender=false;render(curPage,true)}
 document.addEventListener('focusout',()=>setTimeout(()=>{if(pendingRender)softRender()},60));
@@ -425,8 +467,93 @@ function render(p,keep){
   document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===p));
   main.innerHTML=PAGES[p]();(AFTER[p]||(()=>{}))();addEyes(main);marcarOcupados();
   if(saved){restoreForms(saved);window.scrollTo(0,y)}else window.scrollTo(0,0);
+  syncDatas(main);
 }
 const go=p=>render(p,false);
+
+/* ---------- Campo de data com calendário próprio (dd/mm/aaaa) ---------- */
+const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const ICO_CAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>';
+const ICO_ESQ='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+const ICO_DIR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+const isoBR=v=>v?v.split('-').reverse().join('/'):'';
+const isoDe=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+/* gera: campo escondido com a data (AAAA-MM-DD, o que é salvo) + botão que mostra dd/mm/aaaa e abre o calendário */
+function campoData(grupo,nome,valor,o={}){const id=`dp-${grupo}-${nome}`;
+  return `<input type="hidden" id="${id}" ${o.semNome?'':`name="${nome}"`} value="${esc(valor||'')}" data-dp data-def="${esc(o.def??valor??'')}" ${o.obrig?'data-obrig':''} ${o.par?`data-par="${o.par}" data-lado="${o.lado}"`:''}>
+    <button type="button" class="dp-btn" data-for="${id}" onclick="abrirCal('${id}',this)" aria-label="Escolher data"><span></span>${ICO_CAL}</button>`}
+function syncDatas(root=document){root.querySelectorAll('.dp-btn').forEach(b=>{const h=document.getElementById(b.dataset.for);if(!h)return;
+  const sp=b.querySelector('span');sp.textContent=h.value?isoBR(h.value):'dd/mm/aaaa';sp.className=h.value?'':'vazio'})}
+/* reset de formulário: volta as datas para o padrão do campo */
+document.addEventListener('reset',e=>{e.target.querySelectorAll('[data-dp]').forEach(h=>h.value=h.dataset.def||'');setTimeout(()=>syncDatas(e.target),0)},true);
+let dpAlvo=null,dpMes=null;
+function abrirCal(id,btn){
+  if(dpAlvo===id)return fecharCal();
+  fecharCal();const h=document.getElementById(id);if(!h)return;
+  dpAlvo=id;const base=h.value?new Date(h.value+'T12:00:00'):new Date();dpMes=new Date(base.getFullYear(),base.getMonth(),1);
+  let el=document.getElementById('dp');if(!el){el=document.createElement('div');el.id='dp';el.setAttribute('role','dialog');document.body.appendChild(el);
+    const bg=document.createElement('div');bg.id='dp-bg';bg.onclick=fecharCal;document.body.appendChild(bg)}
+  btn.classList.add('open');desenharCal();posicionarCal(btn);document.getElementById('dp-bg').classList.add('show');
+}
+function posicionarCal(btn){const el=document.getElementById('dp');if(innerWidth<=800){el.style.left=el.style.top='';return}
+  const r=btn.getBoundingClientRect(),w=el.offsetWidth,hh=el.offsetHeight;
+  let left=Math.min(r.left,innerWidth-w-8),top=r.bottom+6;if(top+hh>innerHeight-8&&r.top-hh-6>8)top=r.top-hh-6;
+  el.style.left=Math.max(8,left)+'px';el.style.top=Math.max(8,top)+'px'}
+function fecharCal(){const el=document.getElementById('dp');if(el)el.remove();const bg=document.getElementById('dp-bg');if(bg)bg.remove();
+  document.querySelectorAll('.dp-btn.open').forEach(b=>b.classList.remove('open'));const tinha=dpAlvo!==null;dpAlvo=null;if(tinha&&pendingRender)setTimeout(softRender,30)}
+function desenharCal(){
+  const el=document.getElementById('dp'),h=document.getElementById(dpAlvo);if(!el||!h)return fecharCal();
+  const sel=h.value,hoje=today(),y=dpMes.getFullYear(),m=dpMes.getMonth(),ini=new Date(y,m,1-new Date(y,m,1).getDay());
+  /* para filtros De/Até: destaca a faixa entre as duas datas */
+  let fx=null;if(h.dataset.par){const o=document.getElementById(h.dataset.par);const a=h.dataset.lado==='de'?h.value:o&&o.value,b=h.dataset.lado==='de'?o&&o.value:h.value;if(a&&b)fx=[a,b]}
+  const anoAtual=new Date().getFullYear(),anos=[];for(let a=Math.min(2020,y);a<=Math.max(anoAtual+5,y);a++)anos.push(a);
+  let dias='';for(let i=0;i<42;i++){const d=new Date(ini.getFullYear(),ini.getMonth(),ini.getDate()+i),iso=isoDe(d),dw=d.getDay();
+    const cls=['dp-d',d.getMonth()!==m?'fora':'',dw===0||dw===6?'fds':'',iso===hoje?'hoje':'',iso===sel?'sel':'',fx&&iso>fx[0]&&iso<fx[1]?'faixa':''].filter(Boolean).join(' ');
+    dias+=`<button type="button" class="${cls}" data-iso="${iso}" aria-label="${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}">${d.getDate()}</button>`}
+  el.innerHTML=`<div class="dp-h"><button type="button" class="dp-nav" data-nav="-1" aria-label="Mês anterior">${ICO_ESQ}</button>
+    <select data-m aria-label="Mês">${MESES.map((n,i)=>`<option value="${i}" ${i===m?'selected':''}>${n[0].toUpperCase()+n.slice(1)}</option>`).join('')}</select>
+    <select data-a aria-label="Ano">${anos.map(a=>`<option ${a===y?'selected':''}>${a}</option>`).join('')}</select>
+    <button type="button" class="dp-nav" data-nav="1" aria-label="Próximo mês">${ICO_DIR}</button></div>
+    <div class="dp-g">${['D','S','T','Q','Q','S','S'].map(w=>`<div class="dp-w">${w}</div>`).join('')}${dias}</div>
+    <div class="dp-f"><button type="button" data-limpar ${h.hasAttribute('data-obrig')?'style="visibility:hidden"':''}>Limpar</button><button type="button" data-hoje>Hoje</button></div>`;
+  el.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{dpMes=new Date(y,m+ +b.dataset.nav,1);desenharCal()});
+  el.querySelector('[data-m]').onchange=e=>{dpMes=new Date(y,+e.target.value,1);desenharCal()};
+  el.querySelector('[data-a]').onchange=e=>{dpMes=new Date(+e.target.value,m,1);desenharCal()};
+  el.querySelectorAll('.dp-d').forEach(b=>b.onclick=()=>escolherData(b.dataset.iso));
+  el.querySelector('[data-hoje]').onclick=()=>escolherData(hoje);
+  el.querySelector('[data-limpar]').onclick=()=>escolherData('');
+}
+function escolherData(iso){const h=document.getElementById(dpAlvo);if(!h)return fecharCal();
+  h.value=iso;const id=dpAlvo;fecharCal();syncDatas();h.dispatchEvent(new Event('change',{bubbles:true}));
+  const b=document.querySelector(`.dp-btn[data-for="${id}"]`);if(b&&innerWidth>800)b.focus({preventScroll:true})}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&dpAlvo)fecharCal()});
+window.addEventListener('resize',()=>{if(dpAlvo){const b=document.querySelector(`.dp-btn[data-for="${dpAlvo}"]`);if(b)posicionarCal(b)}});
+window.addEventListener('scroll',()=>{if(dpAlvo&&innerWidth>800)fecharCal()},{passive:true});
+
+/* ---------- Filtros por período ---------- */
+const FLT={lanc:{de:'',ate:'',tipo:'',torre:'',at:'tudo'},manut:{de:'',ate:'',torre:'',status:'',at:'tudo'}};
+const noPeriodo=(d,F)=>(!F.de||String(d)>=F.de)&&(!F.ate||String(d)<=F.ate);
+function periodo(at){const d=new Date(),y=d.getFullYear(),m=d.getMonth();
+  if(at==='hoje')return[today(),today()];
+  if(at==='semana'){const i=new Date(y,m,d.getDate()-6);return[isoDe(i),today()]}
+  if(at==='mes')return[isoDe(new Date(y,m,1)),isoDe(new Date(y,m+1,0))];
+  if(at==='mespassado')return[isoDe(new Date(y,m-1,1)),isoDe(new Date(y,m,0))];
+  if(at==='ano')return[`${y}-01-01`,`${y}-12-31`];
+  return['',''];}
+function setFlt(t,k,v){const F=FLT[t];F[k]=v;
+  if(k==='de'||k==='ate'){F.at='';if(F.de&&F.ate&&F.de>F.ate)[F.de,F.ate]=[F.ate,F.de]}
+  render(curPage,true)}
+function atalho(t,at){const F=FLT[t];[F.de,F.ate]=periodo(at);F.at=at;render(curPage,true)}
+function limparFlt(t){const F=FLT[t];Object.keys(F).forEach(k=>F[k]='');F.at='tudo';render(curPage,true)}
+function barraFiltro(t,extras){const F=FLT[t],ativo=F.de||F.ate||Object.entries(F).some(([k,v])=>!['de','ate','at'].includes(k)&&v);
+  const ats=[['hoje','Hoje'],['semana','Últimos 7 dias'],['mes','Este mês'],['mespassado','Mês passado'],['ano','Este ano'],['tudo','Tudo']];
+  return `<div class="filtros">
+    <div><label>De</label>${campoData('flt'+t,'de',F.de,{semNome:1,def:'',par:`dp-flt${t}-ate`,lado:'de'})}</div>
+    <div><label>Até</label>${campoData('flt'+t,'ate',F.ate,{semNome:1,def:'',par:`dp-flt${t}-de`,lado:'ate'})}</div>${extras}</div>
+  <div class="atalhos">${ats.map(([k,n])=>`<button type="button" class="atalho ${F.at===k?'on':''}" onclick="atalho('${t}','${k}')">${n}</button>`).join('')}
+    ${ativo?`<button type="button" class="atalho limpar" onclick="limparFlt('${t}')">Limpar filtros</button>`:''}</div>`}
+/* mudança nos campos De/Até dos filtros */
+document.addEventListener('change',e=>{const m=/^dp-flt(\w+)-(de|ate)$/.exec(e.target.id||'');if(m&&FLT[m[1]])setFlt(m[1],m[2],e.target.value)});
 
 /* ---------- Dados da versão anterior (salvos só neste navegador) ---------- */
 function legado(){if(localStorage.getItem(MIGRADO_KEY))return null;
@@ -469,12 +596,14 @@ dashboard(){
   </div>`;
 },
 financeiro(){
-  const c=calc(),rows=db.lanc.slice().sort((a,b)=>String(b.data).localeCompare(a.data));
+  const c=calc(),F=FLT.lanc,todos=db.lanc.slice().sort((a,b)=>String(b.data).localeCompare(a.data));
+  const rows=todos.filter(l=>noPeriodo(l.data,F)&&(!F.tipo||l.tipo===F.tipo)&&(F.torre===''||(F.torre==='Geral'?!l.torre:l.torre===F.torre)));
+  const ent=rows.filter(l=>!isSaida(l)).reduce((s,l)=>s+(+l.valor||0),0),sai=rows.filter(isSaida).reduce((s,l)=>s+(+l.valor||0),0);
   return `
   <div class="page-head"><h2>Financeiro</h2><div class="chip">Saldo: <b>${brl(c.saldo)}</b> | Fundo: <b>${brl(c.fundo)}</b> | Salão: <b>${brl(c.salao)}</b></div></div>
   <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-plus"></i>Novo Lançamento</h4></div>
     <form class="form" id="fLanc" autocomplete="off">
-      <div><label>Data</label><input type="date" name="data" value="${today()}" required></div>
+      <div><label>Data</label>${campoData('fLanc','data',today(),{obrig:1})}</div>
       <div><label>Tipo</label><select name="tipo"><option>Receita</option><option>Despesa</option><option>Fundo de Reserva</option><option>Resgate do Fundo</option><option>Salão de Festa</option></select></div>
       <div><label>Categoria</label><select name="categoria">${['Taxa Condominial','Água','Energia','Folha de Pagamento','Manutenção','Limpeza','Segurança','Administrativo','Outros'].map(o=>`<option>${o}</option>`).join('')}</select></div>
       <div><label>Torre</label><select name="torre"><option value="">Geral</option>${TORRES.map(t=>`<option>${t}</option>`).join('')}</select></div>
@@ -483,9 +612,13 @@ financeiro(){
       <div><button class="btn"><i class="fa-solid fa-floppy-disk"></i>Salvar</button></div>
     </form></div>
   <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-list"></i>Lançamentos</h4>
-    <small>${rows.length} registro(s)</small></div>
+    <small>${rows.length} de ${todos.length} registro(s)</small></div>
+    ${barraFiltro('lanc',`
+      <div><label>Tipo</label><select onchange="setFlt('lanc','tipo',this.value)"><option value="">Todos</option>${['Receita','Despesa','Fundo de Reserva','Resgate do Fundo','Salão de Festa'].map(o=>`<option ${F.tipo===o?'selected':''}>${o}</option>`).join('')}</select></div>
+      <div><label>Torre</label><select onchange="setFlt('lanc','torre',this.value)"><option value="">Todas</option>${['Geral',...TORRES].map(o=>`<option ${F.torre===o?'selected':''}>${o}</option>`).join('')}</select></div>`)}
+    <div class="resumo-flt"><span>Entradas: <b class="g">${brl(ent)}</b></span><span>Saídas: <b class="r">${brl(sai)}</b></span><span>Resultado: <b class="${ent-sai<0?'r':'g'}">${brl(ent-sai)}</b></span></div>
     ${tbl(['Data','Tipo','Categoria','Descrição','Torre','Valor',''],rows.map(l=>[dt(l.data),tipoTag(l.tipo),esc(l.categoria),esc(l.descricao),esc(l.torre||'Geral'),
-      `<span class="${isSaida(l)?'r':'g'}">${brl(l.valor)}</span>`,delBtn('lanc',l.id)]),'Nenhum lançamento cadastrado.')}
+      `<span class="${isSaida(l)?'r':'g'}">${brl(l.valor)}</span>`,delBtn('lanc',l.id)]),todos.length?'Nenhum lançamento encontrado com esses filtros.':'Nenhum lançamento cadastrado.')}
   </div>
   <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-sliders"></i>Parâmetros do Teto de Gastos</h4></div>
     <form class="form" id="fCfg" autocomplete="off">
@@ -495,12 +628,13 @@ financeiro(){
     </form></div>`;
 },
 manutencao(){
-  const rows=db.manut.slice().sort((a,b)=>String(b.data).localeCompare(a.data));
+  const F=FLT.manut,todos=db.manut.slice().sort((a,b)=>String(b.data).localeCompare(a.data));
+  const rows=todos.filter(m=>noPeriodo(m.data,F)&&(!F.torre||m.torre===F.torre)&&(!F.status||m.status===F.status));
   return `
   <div class="page-head"><h2>Manutenção &amp; Torres</h2></div>
   <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-plus"></i>Nova Manutenção / Ocorrência</h4></div>
     <form class="form" id="fMan" autocomplete="off">
-      <div><label>Data</label><input type="date" name="data" value="${today()}" required></div>
+      <div><label>Data</label>${campoData('fMan','data',today(),{obrig:1})}</div>
       <div><label>Torre</label><select name="torre">${TORRES.map(t=>`<option>${t}</option>`).join('')}<option>Área Comum</option></select></div>
       <div><label>Tipo</label><select name="tipo"><option>Manutenção</option><option>Ocorrência</option><option>Preventiva</option></select></div>
       <div><label>Prioridade</label><select name="prioridade"><option>Baixa</option><option selected>Média</option><option>Alta</option><option>Urgente</option></select></div>
@@ -509,11 +643,15 @@ manutencao(){
       <div><label>Custo estimado (R$)</label><input name="custo" inputmode="decimal" placeholder="0,00"></div>
       <div><button class="btn"><i class="fa-solid fa-floppy-disk"></i>Registrar</button></div>
     </form></div>
-  <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-screwdriver-wrench"></i>Registros</h4><small>${rows.length} registro(s)</small></div>
+  <div class="panel"><div class="panel-h"><h4><i class="fa-solid fa-screwdriver-wrench"></i>Registros</h4><small>${rows.length} de ${todos.length} registro(s)</small></div>
+    ${barraFiltro('manut',`
+      <div><label>Torre</label><select onchange="setFlt('manut','torre',this.value)"><option value="">Todas</option>${[...TORRES,'Área Comum'].map(o=>`<option ${F.torre===o?'selected':''}>${o}</option>`).join('')}</select></div>
+      <div><label>Status</label><select onchange="setFlt('manut','status',this.value)"><option value="">Todos</option>${['Aberta','Em andamento','Concluída'].map(o=>`<option ${F.status===o?'selected':''}>${o}</option>`).join('')}</select></div>`)}
+    <div class="resumo-flt"><span>Custo estimado no filtro: <b>${brl(rows.reduce((s,m)=>s+(+m.custo||0),0))}</b></span></div>
     ${tbl(['Data','Torre','Tipo','Descrição','Prioridade','Responsável','Custo','Status',''],rows.map(m=>[dt(m.data),
       `<span style="color:${TCOR[m.torre]||'#cbd5e1'}">${esc(m.torre)}</span>`,esc(m.tipo),esc(m.titulo),prioTag(m.prioridade),esc(m.resp||'-'),brl(m.custo),
       `<select aria-label="Status" onchange="setStatus('${m.id}',this.value)">${['Aberta','Em andamento','Concluída'].map(s=>`<option ${s===m.status?'selected':''}>${s}</option>`).join('')}</select>`,
-      delBtn('manut',m.id)]),'Nenhuma manutenção registrada.')}
+      delBtn('manut',m.id)]),todos.length?'Nenhum registro encontrado com esses filtros.':'Nenhuma manutenção registrada.')}
   </div>`;
 },
 fornecedores(){
@@ -525,8 +663,8 @@ fornecedores(){
       <div><label>CNPJ / CPF</label><input name="doc" inputmode="numeric"></div>
       <div><label>Serviço</label><input name="servico" required></div>
       <div><label>Contato</label><input name="contato" inputmode="tel"></div>
-      <div><label>Início</label><input type="date" name="inicio"></div>
-      <div><label>Término</label><input type="date" name="fim"></div>
+      <div><label>Início</label>${campoData('fForn','inicio','')}</div>
+      <div><label>Término</label>${campoData('fForn','fim','')}</div>
       <div><label>Valor mensal (R$)</label><input name="valor" inputmode="decimal" placeholder="0,00"></div>
       <div><label>Status</label><select name="status"><option>Ativo</option><option>Suspenso</option><option>Encerrado</option></select></div>
       <div><button class="btn"><i class="fa-solid fa-floppy-disk"></i>Salvar</button></div>
