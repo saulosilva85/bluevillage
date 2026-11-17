@@ -82,7 +82,7 @@ Cada lançamento tem **Data, Tipo, Categoria, Torre, Descrição e Valor**.
 ### Banco & Logs
 - **Exportar backup** (`.json`), disponível para qualquer usuário. Veja a seção **Backup** abaixo.
 - **Importar backup** (somente Administrador): os usuários não são importados.
-- **Zerar banco** (somente Administrador, com confirmação e **senha do administrador**, conferida pelo banco): apaga lançamentos, manutenções, contratos, logs e **todos os usuários**, em todos os aparelhos. Só o usuário `admin` permanece, com a **senha padrão** `Blue@2027!`. Depois de zerar, o sistema volta para a tela de login: entre com o admin e troque a senha.
+- **Zerar banco** (somente Administrador, com confirmação e **senha do administrador**, conferida pelo banco): apaga lançamentos, manutenções, contratos, logs e **todos os usuários**, em todos os aparelhos. Só o usuário `admin` permanece, com a **senha padrão** `Blue@2027!`. Depois de zerar, o sistema volta direto para a tela de login, sem aviso: entre com o admin e troque a senha.
 - **Log de atividades:** logins, cadastros, exclusões e alterações, com data, hora e usuário.
 
 ---
