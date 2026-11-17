@@ -51,12 +51,20 @@ Cada lançamento tem **Data, Tipo, Categoria, Torre, Descrição e Valor**.
 - **Descrição:** lista de seleção com **Crédito** ou **Débito**.
 - **Categorias:** Taxa Condominial, Água, Energia, Folha de Pagamento, Manutenção, Limpeza, Segurança, Administrativo e Outros.
 - O topo da tela Financeiro mostra o resumo: Saldo, Fundo e Salão.
+- **Calendário próprio** em todos os campos de data, no visual do sistema e no formato dd/mm/aaaa. Ele tem setas e listas de mês e ano para ir rápido a outra data, além dos botões **Hoje** e **Limpar**. Hoje fica com contorno azul e fins de semana em azul-claro. No celular, abre no centro da tela com botões grandes.
+- **Filtros da lista de lançamentos:**
+  - Período **De / Até**. O calendário destaca a faixa escolhida.
+  - Atalhos: **Hoje, Últimos 7 dias, Este mês, Mês passado, Este ano e Tudo**.
+  - **Tipo** e **Torre**.
+  - Abaixo dos filtros aparecem as **Entradas, Saídas e o Resultado** do que está filtrado.
+  - **Limpar filtros** volta a mostrar tudo.
 - **Parâmetros do teto:** salário mínimo e multiplicador, editáveis nesta tela.
 
 ### Manutenção & Torres
 - Registro de manutenções, ocorrências e preventivas por torre (ou Área Comum).
 - Para cada registro: prioridade (Baixa, Média, Alta, Urgente), responsável/fornecedor e custo estimado.
 - Status alterável direto na lista: Aberta, Em andamento ou Concluída.
+- **Filtros:** período (De / Até e atalhos), **Torre** e **Status**, com o custo estimado total do que está filtrado.
 
 ### Fornecedores & Contratos
 - Cadastro com razão social, CNPJ/CPF, serviço, contato, vigência e valor mensal.
