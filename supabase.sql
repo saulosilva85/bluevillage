@@ -199,11 +199,12 @@ create or replace function public.admin_zerar_banco() returns void
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.eh_admin() then raise exception 'Não autorizado'; end if;
+  -- "where true": o Supabase recusa DELETE sem WHERE (proteção contra apagar tudo por engano)
   perform set_config('bv.zerar', 'sim', true);
-  delete from public.lanc;
-  delete from public.manut;
-  delete from public.forn;
-  delete from public.logs;
+  delete from public.lanc where true;
+  delete from public.manut where true;
+  delete from public.forn where true;
+  delete from public.logs where true;
 end $$;
 revoke execute on function public.admin_zerar_banco() from public, anon;
 grant  execute on function public.admin_zerar_banco() to authenticated;
