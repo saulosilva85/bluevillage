@@ -194,19 +194,26 @@ drop trigger if exists bv_proteger_concluida on public.manut;
 create trigger bv_proteger_concluida before delete on public.manut
   for each row execute function public.bv_proteger_concluida();
 
--- Zerar banco (somente Administrador): apaga lançamentos, manutenções, contratos e logs
-create or replace function public.admin_zerar_banco() returns void
-language plpgsql security definer set search_path = public as $$
+-- Zerar banco (somente Administrador, confirmando a própria senha):
+-- apaga lançamentos, manutenções, contratos e logs
+drop function if exists public.admin_zerar_banco();
+create or replace function public.admin_zerar_banco(senha text) returns void
+language plpgsql security definer set search_path = public, extensions as $$
 begin
   if not public.eh_admin() then raise exception 'Não autorizado'; end if;
+  if not exists (select 1 from auth.users u where u.id = auth.uid()
+                 and u.encrypted_password = extensions.crypt(coalesce(senha, ''), u.encrypted_password)) then
+    raise exception 'Senha incorreta';
+  end if;
   perform set_config('bv.zerar', 'sim', true);
-  delete from public.lanc;
-  delete from public.manut;
-  delete from public.forn;
-  delete from public.logs;
+  -- "where true" é exigido pela proteção do Supabase contra DELETE sem WHERE
+  delete from public.lanc  where true;
+  delete from public.manut where true;
+  delete from public.forn  where true;
+  delete from public.logs  where true;
 end $$;
-revoke execute on function public.admin_zerar_banco() from public, anon;
-grant  execute on function public.admin_zerar_banco() to authenticated;
+revoke execute on function public.admin_zerar_banco(text) from public, anon;
+grant  execute on function public.admin_zerar_banco(text) to authenticated;
 
 -- ---------- Confirmação automática dos logins internos ----------
 -- Os logins do sistema usam e-mails internos (@bluevillage.app) que não recebem mensagens.
