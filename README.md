@@ -10,7 +10,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 
 ## 🔐 Acesso
 
-- O usuário administrador é o `admin`. A **senha inicial** foi repassada à gestão e **não fica publicada** neste repositório.
+- O usuário administrador é o `admin`. A **senha inicial** foi repassada à gestão e **não fica publicada** neste repositório nem no código do site: ela fica guardada no banco só como *hash* (veja o passo 3.1 da configuração).
 - ⚠️ O link é público. **Troque a senha no primeiro acesso** em *Gestão de Usuários → Alterar Minha Senha*.
 - Os demais usuários são criados pelo Administrador em *Gestão de Usuários*.
 
@@ -148,6 +148,20 @@ O painel do Supabase é em inglês, por isso os nomes dos botões estão em ingl
 5. Deve aparecer **Success. No rows returned**. Se aparecer um aviso sobre *destructive operation*, clique em **Run this query**.
 6. Para conferir, clique em **Table Editor** no menu da esquerda. Devem aparecer as tabelas `config`, `forn`, `lanc`, `logs`, `manut` e `perfis`.
 
+**3.1. Cadastrar a senha inicial do admin**
+
+A senha inicial **não fica no código** (o repositório é público). Ela é guardada no banco só como *hash* (embaralhada, sem como ser lida de volta) e é usada no primeiro acesso e quando o banco é zerado.
+
+1. No **SQL Editor**, clique em **+ New query**.
+2. Cole o comando abaixo, troque `SENHA_AQUI` pela senha escolhida (mínimo 6 caracteres) e clique em **Run**:
+   ```sql
+   insert into public.bv_privado (chave, valor)
+   values ('senha_inicial_admin', extensions.crypt('SENHA_AQUI', extensions.gen_salt('bf')))
+   on conflict (chave) do update set valor = excluded.valor;
+   ```
+3. Para não deixar a senha no histórico do editor, apague o texto da consulta depois de executar.
+4. Para trocar a senha inicial no futuro, execute o mesmo comando com a nova senha.
+
 **4. Configurar o login**
 1. No menu da esquerda, clique em **Authentication** e depois em **Sign In / Providers**. Em versões antigas o nome é **Providers**.
 2. Na seção **User Signups**:
@@ -193,6 +207,7 @@ O painel do Supabase é em inglês, por isso os nomes dos botões estão em ingl
 | *Login não confirmado* | Execute de novo o `supabase.sql` no SQL Editor e confira se **Confirm email** está desligado. |
 | *Usuário ou senha inválidos* | Confira o login e a senha. Para esquecimento de senha, o Administrador usa **Redefinir senha** (ícone 🔄) em *Gestão de Usuários*. |
 | Esqueci a senha do `admin` | Outro usuário com perfil **Administrador** pode usar **Redefinir senha** (ícone 🔄). Por isso, vale ter **dois administradores**. |
+| *Senha inicial do admin não configurada* | Faça o passo **3.1** da configuração do Supabase. |
 | *Usuário inativo* / *Usuário sem acesso* | O Administrador precisa ativar ou recriar o usuário. |
 | *Banco não preparado* | Execute o `supabase.sql` no SQL Editor. |
 | *Sem conexão com a internet* | Verifique a internet. Se o Supabase estiver pausado, clique em **Restore project** no painel. |

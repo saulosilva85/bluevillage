@@ -119,11 +119,38 @@ language sql stable security definer set search_path = public as $$
   select not exists (select 1 from public.perfis);
 $$;
 
+-- Senha inicial do admin: guardada só como hash, numa tabela que o site não consegue ler.
+-- Ela NÃO fica neste arquivo: é cadastrada à parte no SQL Editor (veja o README).
+create table if not exists public.bv_privado (chave text primary key, valor text not null);
+alter table public.bv_privado enable row level security;
+revoke all on public.bv_privado from anon, authenticated;
+
+create or replace function public.senha_inicial_hash() returns text
+language plpgsql stable security definer set search_path = public as $$
+declare h text;
+begin
+  select valor into h from public.bv_privado where chave = 'senha_inicial_admin';
+  if h is null then raise exception 'Senha inicial não configurada'; end if;
+  return h;
+end $$;
+
+-- Primeiro acesso: confere a senha digitada com a senha inicial (só funciona enquanto não houver usuários)
+create or replace function public.confere_senha_inicial(senha text) returns boolean
+language plpgsql stable security definer set search_path = public, extensions as $$
+declare h text;
+begin
+  if exists (select 1 from public.perfis) then return false; end if;
+  h := public.senha_inicial_hash();
+  return h = extensions.crypt(coalesce(senha, ''), h);
+end $$;
+
 -- Primeiro acesso: transforma a conta admin@bluevillage.app no Administrador
-create or replace function public.bootstrap_admin() returns void
-language plpgsql security definer set search_path = public as $$
+drop function if exists public.bootstrap_admin();
+create or replace function public.bootstrap_admin(senha text) returns void
+language plpgsql security definer set search_path = public, extensions as $$
 begin
   if exists (select 1 from public.perfis) then raise exception 'Sistema já inicializado'; end if;
+  if not public.confere_senha_inicial(senha) then raise exception 'Não autorizado'; end if;
   if auth.uid() is null or (select email from auth.users where id = auth.uid()) <> 'admin@bluevillage.app' then
     raise exception 'Não autorizado';
   end if;
@@ -157,12 +184,14 @@ begin
     and not exists (select 1 from public.perfis p where p.id = u.id);
 end $$;
 
-revoke execute on function public.bootstrap_admin()                  from public, anon;
+revoke execute on function public.bootstrap_admin(text)              from public, anon;
+revoke execute on function public.senha_inicial_hash()               from public, anon, authenticated;
 revoke execute on function public.admin_definir_senha(uuid, text)    from public, anon;
 revoke execute on function public.admin_excluir_usuario(uuid)        from public, anon;
 revoke execute on function public.admin_remover_orfao(text)          from public, anon;
 grant  execute on function public.precisa_bootstrap()                to anon, authenticated;
-grant  execute on function public.bootstrap_admin()                  to authenticated;
+grant  execute on function public.bootstrap_admin(text)              to authenticated;
+grant  execute on function public.confere_senha_inicial(text)        to anon, authenticated;
 grant  execute on function public.admin_definir_senha(uuid, text)    to authenticated;
 grant  execute on function public.admin_excluir_usuario(uuid)        to authenticated;
 grant  execute on function public.admin_remover_orfao(text)          to authenticated;
@@ -211,9 +240,9 @@ begin
   delete from public.manut where true;
   delete from public.forn  where true;
   delete from public.logs  where true;
-  -- usuários: só o "admin" permanece, ativo e com a senha padrão
+  -- usuários: só o "admin" permanece, ativo e com a senha inicial
   delete from auth.users where email <> 'admin@bluevillage.app';
-  update auth.users set encrypted_password = extensions.crypt('Blue@2027!', extensions.gen_salt('bf')), updated_at = now()
+  update auth.users set encrypted_password = public.senha_inicial_hash(), updated_at = now()
     where email = 'admin@bluevillage.app';
   update public.perfis set nome = 'Admin', perfil = 'Administrador', ativo = true where usuario = 'admin';
   insert into public.logs (usuario, acao) values ((select usuario from public.perfis where id = auth.uid()), 'Banco zerado');

@@ -281,7 +281,6 @@ const SUPABASE_URL = "https://nusiftldrfdpfnaghuih.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51c2lmdGxkcmZkcGZuYWdodWloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ4NjM3MjksImV4cCI6MjExMDQzOTcyOX0.itapppygBh89WdypUKOmgPvPGTNluhwfj60e7WgCI5A";
 const SB_VER='2.45.4';
 const EMAIL_DOMAIN='bluevillage.app';   // domínio interno dos logins (nenhum e-mail é enviado)
-const SENHA_PADRAO='Blue@2027!';        // senha do primeiro acesso do admin
 
 /* ---------- Estado ---------- */
 const TORRES=['Jurerê','Gunga','Itacaré'];
@@ -289,7 +288,7 @@ const TCOR={'Jurerê':'#60a5fa','Gunga':'#34d399','Itacaré':'#c084fc'};
 const DEF_CFG={salario:1518,mult:5};
 const LEGACY_KEY='bluevillage_db_v1',MIGRADO_KEY='bluevillage_migrado';
 let db={users:[],lanc:[],manut:[],forn:[],logs:[],config:{...DEF_CFG}};
-let SBM,sb,meProfile=null,canal=null,pollTimer=null,timers={};
+let senhaBootstrap=null,SBM,sb,meProfile=null,canal=null,pollTimer=null,timers={};
 let curPage='dashboard',pendingRender=false,justLoggedIn=false,sessionUid=null;
 const me=()=>meProfile;
 const isAdmin=()=>!!meProfile&&meProfile.perfil==='Administrador';
@@ -322,6 +321,7 @@ function errMsg(e){
   if(/signups not allowed|signup_disabled/i.test(m+c))return 'Cadastro de logins desativado no Supabase: ative "Allow new users to sign up" (veja o README).';
   if(/rate limit|too many/i.test(m))return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
   if(/failed to fetch|networkerror|network request failed|load failed|sem-conexao/i.test(m+c))return 'Sem conexão com a internet. Verifique e tente novamente.';
+  if(/senha inicial n[ãa]o configurada/i.test(m))return 'Senha inicial do admin não configurada no Supabase (veja o README).';
   if(/conclu[ií]do n[ãa]o pode ser exclu/i.test(m))return 'Registro concluído não pode ser excluído.';
   if(/registro conclu/i.test(m))return 'Registro concluído: o status não pode mais ser alterado.';
   if(c==='42501'||/row-level security|não autorizado|permission/i.test(m))return 'Sem permissão para esta ação.';
@@ -406,8 +406,9 @@ loginForm.onsubmit=async e=>{
     const{error}=await sb.auth.signInWithPassword({email:emailDe(u),password:p});
     if(error){
       /* primeiro acesso: cria o login do admin */
-      if(u==='admin'&&p===SENHA_PADRAO&&/invalid/i.test(error.message)&&await q(sb.rpc('precisa_bootstrap'))){
-        const r=await sb.auth.signUp({email:emailDe('admin'),password:p});
+      /* a senha inicial é conferida no banco (ela não fica no código do site) */
+      if(u==='admin'&&/invalid/i.test(error.message)&&await q(sb.rpc('precisa_bootstrap'))&&await q(sb.rpc('confere_senha_inicial',{senha:p}))){
+        senhaBootstrap=p;const r=await sb.auth.signUp({email:emailDe('admin'),password:p});
         if(r.error)throw r.error;
         if(!r.data.session){const s2=await sb.auth.signInWithPassword({email:emailDe('admin'),password:p});if(s2.error)throw s2.error}
       }else throw error;
@@ -421,7 +422,7 @@ async function startSession(user){
   try{
     let p=await q(sb.from('perfis').select('*').eq('id',user.id).maybeSingle());
     if(!p&&user.email===emailDe('admin')&&await q(sb.rpc('precisa_bootstrap'))){
-      await q(sb.rpc('bootstrap_admin'));p=await q(sb.from('perfis').select('*').eq('id',user.id).maybeSingle());
+      await q(sb.rpc('bootstrap_admin',{senha:senhaBootstrap||''}));senhaBootstrap=null;p=await q(sb.from('perfis').select('*').eq('id',user.id).maybeSingle());
     }
     if(!p||!p.ativo){const m=p?'Usuário inativo. Procure o administrador.':'Usuário sem acesso. Procure o administrador.';
       justLoggedIn=false;await sb.auth.signOut();loginErr.textContent=m;return}
