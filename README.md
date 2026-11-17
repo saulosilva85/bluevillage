@@ -63,7 +63,7 @@ Cada lançamento tem **Data, Tipo, Categoria, Torre, Descrição e Valor**.
 ### Manutenção & Torres
 - Registro de manutenções, ocorrências e preventivas por torre (ou Área Comum).
 - Para cada registro: prioridade (Baixa, Média, Alta, Urgente), responsável/fornecedor e custo estimado.
-- Status alterável direto na lista: Aberta, Em andamento ou Concluída. Ao escolher **Concluída**, o sistema pede confirmação. Depois disso o status fica **travado** (🔒 Concluída) e não pode mais voltar para Aberta ou Em andamento, nem pela tela nem direto no banco.
+- Status alterável direto na lista: Aberta, Em andamento ou Concluída. Ao escolher **Concluída**, o sistema pede confirmação. Depois disso o status fica **travado** (🔒 Concluída) e não pode mais voltar para Aberta ou Em andamento, nem pela tela nem direto no banco. O registro concluído também **não pode ser excluído**: a lixeira some da linha e o banco recusa a exclusão. A única exceção é o **Zerar banco** do Administrador.
 - **Filtros:** período (De / Até e atalhos), **Torre** e **Status**, com o custo estimado total do que está filtrado.
 
 ### Fornecedores & Contratos

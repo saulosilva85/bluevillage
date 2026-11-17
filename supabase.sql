@@ -180,6 +180,34 @@ drop trigger if exists bv_travar_concluida on public.manut;
 create trigger bv_travar_concluida before update on public.manut
   for each row execute function public.bv_travar_concluida();
 
+-- ---------- Manutenção concluída não pode ser excluída ----------
+-- (exceto pela opção "Zerar banco" do Administrador)
+create or replace function public.bv_proteger_concluida() returns trigger
+language plpgsql as $$
+begin
+  if old.status = 'Concluída' and coalesce(current_setting('bv.zerar', true), '') <> 'sim' then
+    raise exception 'Registro concluído não pode ser excluído';
+  end if;
+  return old;
+end $$;
+drop trigger if exists bv_proteger_concluida on public.manut;
+create trigger bv_proteger_concluida before delete on public.manut
+  for each row execute function public.bv_proteger_concluida();
+
+-- Zerar banco (somente Administrador): apaga lançamentos, manutenções, contratos e logs
+create or replace function public.admin_zerar_banco() returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.eh_admin() then raise exception 'Não autorizado'; end if;
+  perform set_config('bv.zerar', 'sim', true);
+  delete from public.lanc;
+  delete from public.manut;
+  delete from public.forn;
+  delete from public.logs;
+end $$;
+revoke execute on function public.admin_zerar_banco() from public, anon;
+grant  execute on function public.admin_zerar_banco() to authenticated;
+
 -- ---------- Confirmação automática dos logins internos ----------
 -- Os logins do sistema usam e-mails internos (@bluevillage.app) que não recebem mensagens.
 -- Esta regra marca esses logins como confirmados no momento em que são criados.
