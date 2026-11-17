@@ -51,7 +51,7 @@ Cada lançamento tem **Data, Tipo, Categoria, Torre, Descrição e Valor**.
 - **Descrição:** lista de seleção com **Crédito** ou **Débito**.
 - **Categorias:** Taxa Condominial, Água, Energia, Folha de Pagamento, Manutenção, Limpeza, Segurança, Administrativo e Outros.
 - O topo da tela Financeiro mostra o resumo: Saldo, Fundo e Salão.
-- **Calendário próprio** em todos os campos de data, no visual do sistema e no formato dd/mm/aaaa. Ele tem setas e listas de mês e ano para ir rápido a outra data, além dos botões **Hoje** e **Limpar**. Hoje fica com contorno azul e fins de semana em azul-claro. No celular, abre no centro da tela com botões grandes.
+- **Calendário próprio** em todos os campos de data, no visual do sistema e no formato dd/mm/aaaa. Ele tem setas e listas próprias de mês e ano (iguais no computador e no celular) para ir rápido a outra data, além dos botões **Hoje** e **Limpar**. Hoje fica com contorno azul e fins de semana em azul-claro. No celular, abre no centro da tela com botões grandes. O calendário fecha sozinho ao tocar fora dele, ao abrir o menu, ao trocar de tela ou com a tecla Esc.
 - **Filtros da lista de lançamentos:**
   - Período **De / Até**. O calendário destaca a faixa escolhida.
   - Atalhos: **Hoje, Últimos 7 dias, Este mês, Mês passado, Este ano e Tudo**.
