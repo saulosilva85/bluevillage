@@ -82,7 +82,7 @@ Cada lançamento tem **Data, Tipo, Categoria, Torre, Descrição e Valor**.
 ### Banco & Logs
 - **Exportar backup** (`.json`), disponível para qualquer usuário. Veja a seção **Backup** abaixo.
 - **Importar backup** (somente Administrador): os usuários não são importados.
-- **Zerar banco** (somente Administrador, com dupla confirmação): apaga lançamentos, manutenções, contratos e logs de todos os aparelhos e mantém os usuários.
+- **Zerar banco** (somente Administrador, com confirmação e **senha do administrador**, conferida pelo banco): apaga lançamentos, manutenções, contratos e logs de todos os aparelhos e mantém os usuários.
 - **Log de atividades:** logins, cadastros, exclusões e alterações, com data, hora e usuário.
 
 ---

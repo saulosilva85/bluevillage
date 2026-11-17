@@ -814,9 +814,19 @@ async function descartarLegado(){if(!(await confirmBox('Descartar os dados antig
   localStorage.setItem(MIGRADO_KEY,'descartado');softRender()}
 async function resetDB(){
   if(!(await confirmBox('Isso apagará TODOS os lançamentos, manutenções, contratos e logs da nuvem, em todos os aparelhos. Os usuários são mantidos. Continuar?','Zerar banco')))return;
-  if(!(await confirmBox('Tem certeza? Esta ação não pode ser desfeita.','Sim, zerar tudo')))return;
-  try{await q(sb.rpc('admin_zerar_banco'));
-    log('Banco zerado');toast('Banco zerado.');await refresh(['lanc','manut','forn','logs'])}catch(e){console.error(e);toast(errMsg(e),1)}}
+  fecharCal();const bg=document.createElement('div');bg.className='modal-bg';
+  bg.innerHTML=`<form class="modal form" style="display:block" autocomplete="off"><h4>Confirmar com a senha do Administrador</h4>
+    <p class="modal-msg" style="margin-bottom:12px">Esta ação não pode ser desfeita. Digite a senha do usuário <b>${esc(meProfile.user)}</b> para zerar o banco.</p>
+    <label>Senha</label><input type="password" name="senha" required autocomplete="current-password">
+    <div class="acts"><button type="button" class="btn sec" data-x>Cancelar</button><button class="btn danger">Zerar banco</button></div></form>`;
+  document.body.appendChild(bg);addEyes(bg);bg.querySelector('input').focus();
+  bg.querySelector('[data-x]').onclick=()=>{bg.remove();softRender()};
+  bg.querySelector('form').onsubmit=async e=>{e.preventDefault();const btn=e.target.querySelector('.btn.danger');if(btn.disabled)return;btn.disabled=true;btn.textContent='Zerando...';
+    try{await q(sb.rpc('admin_zerar_banco',{senha:e.target.senha.value}));
+      bg.remove();log('Banco zerado');toast('Banco zerado.');await refresh(['lanc','manut','forn','logs'])}
+    catch(err){console.error(err);toast(/senha incorreta/i.test(err.message||'')?'Senha incorreta. O banco não foi zerado.':errMsg(err),1);
+      btn.disabled=false;btn.textContent='Zerar banco';e.target.senha.value='';e.target.senha.focus()}};
+}
 
 const AFTER={
 financeiro(){
