@@ -143,8 +143,15 @@ td select{background:var(--bg);color:#fff;border:1px solid var(--border);border-
 #dp{position:fixed;z-index:70;width:320px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;
   box-shadow:0 18px 40px rgba(0,0,0,.55);user-select:none}
 #dp .dp-h{display:flex;align-items:center;gap:6px;margin-bottom:10px}
-#dp .dp-h select[data-a]{flex:0 0 86px}
-#dp .dp-h select{flex:1;min-width:0;height:34px;background:var(--bg);color:#fff;border:1px solid var(--border);border-radius:7px;padding:0 6px;font-weight:600}
+#dp .dp-sel{position:relative;flex:1;min-width:0}#dp .dp-sel[data-sel=a]{flex:0 0 92px}
+#dp .dp-selb{width:100%;height:34px;background:var(--bg);color:#fff;border:1px solid var(--border);border-radius:7px;padding:0 8px;font-weight:700;
+  font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:4px;cursor:pointer}
+#dp .dp-selb.open{border-color:var(--blue-l)}#dp .dp-selb svg{width:14px;height:14px;flex-shrink:0;transition:transform .15s}#dp .dp-selb.open svg{transform:rotate(180deg)}
+#dp .dp-list{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:2;max-height:252px;overflow-y:auto;overscroll-behavior:contain;
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 12px 28px rgba(0,0,0,.5)}
+#dp .dp-list button{display:block;width:100%;text-align:left;height:34px;padding:0 10px;border:0;border-radius:6px;background:none;color:#e2e8f0;font-size:14px;cursor:pointer}
+#dp .dp-list button.sel{background:#93c5fd;color:#0f172a;font-weight:700}
+@media(hover:hover){#dp .dp-list button:not(.sel):hover{background:#273449}}
 #dp .dp-nav{width:34px;height:34px;flex-shrink:0;border:0;border-radius:7px;background:#273449;color:#fff;cursor:pointer;display:grid;place-items:center}
 #dp .dp-nav svg{width:16px;height:16px}
 #dp .dp-g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
@@ -206,7 +213,7 @@ td select{background:var(--bg);color:#fff;border:1px solid var(--border);border-
   .atalho{height:40px;padding:0 14px}
   .dp-btn{font-size:16px}
   #dp{left:50%!important;top:50%!important;transform:translate(-50%,-50%);width:min(340px,94vw)}
-  #dp .dp-d{height:42px;font-size:16px}#dp .dp-nav{width:42px;height:42px}#dp .dp-h select{height:42px;font-size:16px}
+  #dp .dp-d{height:42px;font-size:16px}#dp .dp-nav{width:42px;height:42px}#dp .dp-selb{height:42px;font-size:16px}#dp .dp-list button{height:42px;font-size:16px}#dp .dp-list{max-height:300px}
   #dp-bg.show{display:block}
   .form>div:has(>.btn){grid-column:1/-1}.form .btn{width:100%}
   td select{height:40px}
@@ -339,7 +346,7 @@ function limpa(t,o){const r={};COLS[t].forEach(k=>{let v=o[k];if(DATAS.includes(
 async function upsertLotes(t,rows){for(let i=0;i<rows.length;i+=500)await q(sb.from(t).upsert(rows.slice(i,i+500)))}
 
 /* ---------- Janela de confirmação (substitui confirm() do navegador) ---------- */
-function confirmBox(msg,okTxt='Confirmar',danger=true){return new Promise(res=>{
+function confirmBox(msg,okTxt='Confirmar',danger=true){fecharCal();return new Promise(res=>{
   const bg=document.createElement('div');bg.className='modal-bg';
   bg.innerHTML=`<div class="modal" role="dialog" aria-modal="true"><h4>Confirmação</h4><p class="modal-msg">${esc(msg)}</p>
     <div class="acts"><button type="button" class="btn sec" data-n>Cancelar</button><button type="button" class="btn ${danger?'danger':''}" data-s>${esc(okTxt)}</button></div></div>`;
@@ -382,7 +389,7 @@ async function criarConta(user,senha){
 
 /* ---------- Login / sessão ---------- */
 function setBusy(b,txt){btnLogin.disabled=b;btnLogin.textContent=b?txt:'Acessar Sistema'}
-function showLogin(){pararTempoReal();meProfile=null;sessionUid=null;app.classList.add('hidden');login.classList.remove('hidden');toggleMenu(false);
+function showLogin(){fecharCal();pararTempoReal();meProfile=null;sessionUid=null;app.classList.add('hidden');login.classList.remove('hidden');toggleMenu(false);
   document.querySelectorAll('.modal-bg').forEach(m=>m.remove());main.innerHTML='';setBusy(false);
   if(location.hash)history.replaceState(null,'',location.pathname+location.search)}
 loginForm.onsubmit=async e=>{
@@ -452,7 +459,7 @@ function pararTempoReal(){if(canal&&sb){sb.removeChannel(canal).catch(()=>{})}ca
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&sessionUid&&!app.classList.contains('hidden'))refresh(Object.values(TAB_KEY)).catch(()=>{})});
 
 /* ---------- Navegação e renderização ---------- */
-function toggleMenu(force){const open=force??!aside.classList.contains('open');aside.classList.toggle('open',open);backdrop.classList.toggle('show',open)}
+function toggleMenu(force){fecharCal();const open=force??!aside.classList.contains('open');aside.classList.toggle('open',open);backdrop.classList.toggle('show',open)}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>{go(n.dataset.page);toggleMenu(false)});
 function editando(){const a=document.activeElement;return !!document.querySelector('.modal-bg')||dpAlvo!==null||(!!a&&main.contains(a)&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))}
 /* atualiza a tela quando chegam dados de outro aparelho, sem apagar o que está sendo digitado */
@@ -469,7 +476,7 @@ function render(p,keep){
   if(saved){restoreForms(saved);window.scrollTo(0,y)}else window.scrollTo(0,0);
   syncDatas(main);
 }
-const go=p=>render(p,false);
+const go=p=>{fecharCal();render(p,false)};
 
 /* ---------- Campo de data com calendário próprio (dd/mm/aaaa) ---------- */
 const MESES=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -486,7 +493,12 @@ function syncDatas(root=document){root.querySelectorAll('.dp-btn').forEach(b=>{c
   const sp=b.querySelector('span');sp.textContent=h.value?isoBR(h.value):'dd/mm/aaaa';sp.className=h.value?'':'vazio'})}
 /* reset de formulário: volta as datas para o padrão do campo */
 document.addEventListener('reset',e=>{e.target.querySelectorAll('[data-dp]').forEach(h=>h.value=h.dataset.def||'');setTimeout(()=>syncDatas(e.target),0)},true);
-let dpAlvo=null,dpMes=null;
+let dpAlvo=null,dpMes=null,dpLista=null;
+const ICO_BAIXO='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+/* lista de mês/ano própria do sistema (igual no computador e no celular) */
+function listaSel(k,rot,txt,ops,atual){const ab=dpLista===k;
+  return `<div class="dp-sel" data-sel="${k}"><button type="button" class="dp-selb ${ab?'open':''}" aria-label="${rot}" aria-expanded="${ab}"><span>${txt}</span>${ICO_BAIXO}</button>
+  ${ab?`<div class="dp-list" role="listbox">${ops.map(([v,n])=>`<button type="button" role="option" data-v="${v}" class="${v===atual?'sel':''}">${n}</button>`).join('')}</div>`:''}</div>`}
 function abrirCal(id,btn){
   if(dpAlvo===id)return fecharCal();
   fecharCal();const h=document.getElementById(id);if(!h)return;
@@ -499,7 +511,7 @@ function posicionarCal(btn){const el=document.getElementById('dp');if(innerWidth
   const r=btn.getBoundingClientRect(),w=el.offsetWidth,hh=el.offsetHeight;
   let left=Math.min(r.left,innerWidth-w-8),top=r.bottom+6;if(top+hh>innerHeight-8&&r.top-hh-6>8)top=r.top-hh-6;
   el.style.left=Math.max(8,left)+'px';el.style.top=Math.max(8,top)+'px'}
-function fecharCal(){const el=document.getElementById('dp');if(el)el.remove();const bg=document.getElementById('dp-bg');if(bg)bg.remove();
+function fecharCal(){dpLista=null;const el=document.getElementById('dp');if(el)el.remove();const bg=document.getElementById('dp-bg');if(bg)bg.remove();
   document.querySelectorAll('.dp-btn.open').forEach(b=>b.classList.remove('open'));const tinha=dpAlvo!==null;dpAlvo=null;if(tinha&&pendingRender)setTimeout(softRender,30)}
 function desenharCal(){
   const el=document.getElementById('dp'),h=document.getElementById(dpAlvo);if(!el||!h)return fecharCal();
@@ -511,14 +523,17 @@ function desenharCal(){
     const cls=['dp-d',d.getMonth()!==m?'fora':'',dw===0||dw===6?'fds':'',iso===hoje?'hoje':'',iso===sel?'sel':'',fx&&iso>fx[0]&&iso<fx[1]?'faixa':''].filter(Boolean).join(' ');
     dias+=`<button type="button" class="${cls}" data-iso="${iso}" aria-label="${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}">${d.getDate()}</button>`}
   el.innerHTML=`<div class="dp-h"><button type="button" class="dp-nav" data-nav="-1" aria-label="Mês anterior">${ICO_ESQ}</button>
-    <select data-m aria-label="Mês">${MESES.map((n,i)=>`<option value="${i}" ${i===m?'selected':''}>${n[0].toUpperCase()+n.slice(1)}</option>`).join('')}</select>
-    <select data-a aria-label="Ano">${anos.map(a=>`<option ${a===y?'selected':''}>${a}</option>`).join('')}</select>
+    ${listaSel('m','Mês',MESES[m][0].toUpperCase()+MESES[m].slice(1),MESES.map((n,i)=>[i,n[0].toUpperCase()+n.slice(1)]),m)}
+    ${listaSel('a','Ano',y,anos.map(a=>[a,a]),y)}
     <button type="button" class="dp-nav" data-nav="1" aria-label="Próximo mês">${ICO_DIR}</button></div>
     <div class="dp-g">${['D','S','T','Q','Q','S','S'].map(w=>`<div class="dp-w">${w}</div>`).join('')}${dias}</div>
     <div class="dp-f"><button type="button" data-limpar ${h.hasAttribute('data-obrig')?'style="visibility:hidden"':''}>Limpar</button><button type="button" data-hoje>Hoje</button></div>`;
   el.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{dpMes=new Date(y,m+ +b.dataset.nav,1);desenharCal()});
-  el.querySelector('[data-m]').onchange=e=>{dpMes=new Date(y,+e.target.value,1);desenharCal()};
-  el.querySelector('[data-a]').onchange=e=>{dpMes=new Date(+e.target.value,m,1);desenharCal()};
+  el.querySelectorAll('.dp-selb').forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.parentNode.dataset.sel;dpLista=dpLista===k?null:k;desenharCal()});
+  el.querySelectorAll('.dp-list button').forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.closest('.dp-sel').dataset.sel,v=+b.dataset.v;
+    dpMes=k==='m'?new Date(y,v,1):new Date(v,m,1);dpLista=null;desenharCal()});
+  el.onclick=e=>{if(dpLista&&!e.target.closest('.dp-sel')){dpLista=null;desenharCal()}};
+  const ls=el.querySelector('.dp-list');if(ls){const sb=ls.querySelector('.sel');if(sb)ls.scrollTop=sb.offsetTop-ls.clientHeight/2+sb.offsetHeight/2}
   el.querySelectorAll('.dp-d').forEach(b=>b.onclick=()=>escolherData(b.dataset.iso));
   el.querySelector('[data-hoje]').onclick=()=>escolherData(hoje);
   el.querySelector('[data-limpar]').onclick=()=>escolherData('');
@@ -526,7 +541,9 @@ function desenharCal(){
 function escolherData(iso){const h=document.getElementById(dpAlvo);if(!h)return fecharCal();
   h.value=iso;const id=dpAlvo;fecharCal();syncDatas();h.dispatchEvent(new Event('change',{bubbles:true}));
   const b=document.querySelector(`.dp-btn[data-for="${id}"]`);if(b&&innerWidth>800)b.focus({preventScroll:true})}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&dpAlvo)fecharCal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&dpAlvo){if(dpLista){dpLista=null;desenharCal()}else fecharCal()}});
+/* clique/toque fora do calendário fecha (inclusive no menu lateral e em outras telas) */
+document.addEventListener('pointerdown',e=>{if(dpAlvo&&!e.target.closest('#dp')&&!e.target.closest('.dp-btn'))fecharCal()},true);
 window.addEventListener('resize',()=>{if(dpAlvo){const b=document.querySelector(`.dp-btn[data-for="${dpAlvo}"]`);if(b)posicionarCal(b)}});
 window.addEventListener('scroll',()=>{if(dpAlvo&&innerWidth>800)fecharCal()},{passive:true});
 
@@ -749,7 +766,7 @@ function setStatus(id,s){const m=db.manut.find(x=>x.id===id);if(!m)return;run(q(
 function setForn(id,s){const f=db.forn.find(x=>x.id===id);if(!f)return;run(q(sb.from('forn').update({status:s}).eq('id',id)).then(()=>log(`Contrato "${f.nome}" → ${s}`)),'Status atualizado.',['forn'])}
 function toggleUser(id){const u=db.users.find(x=>x.id===id);if(!u)return;
   run(q(sb.from('perfis').update({ativo:!u.ativo}).eq('id',id)).then(()=>log(`Usuário ${u.user} ${u.ativo?'inativado':'ativado'}`)),u.ativo?'Usuário inativado.':'Usuário ativado.',['users'])}
-function resetUser(id){
+function resetUser(id){fecharCal();
   const u=db.users.find(x=>x.id===id);if(!u)return;const bg=document.createElement('div');bg.className='modal-bg';
   bg.innerHTML=`<form class="modal form" style="display:block" autocomplete="off"><h4>Redefinir senha — ${esc(u.user)}</h4>
     <label>Nova senha (mín. 6 caracteres)</label><input type="password" name="nova" minlength="6" required data-nova>
