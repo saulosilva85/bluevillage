@@ -518,7 +518,8 @@ function desenharCal(){
   const sel=h.value,hoje=today(),y=dpMes.getFullYear(),m=dpMes.getMonth(),ini=new Date(y,m,1-new Date(y,m,1).getDay());
   /* para filtros De/Até: destaca a faixa entre as duas datas */
   let fx=null;if(h.dataset.par){const o=document.getElementById(h.dataset.par);const a=h.dataset.lado==='de'?h.value:o&&o.value,b=h.dataset.lado==='de'?o&&o.value:h.value;if(a&&b)fx=[a,b]}
-  const anoAtual=new Date().getFullYear(),anos=[];for(let a=Math.min(2020,y);a<=Math.max(anoAtual+5,y);a++)anos.push(a);
+  /* anos de 1950 até 50 anos à frente do ano atual (a lista acompanha a virada do ano automaticamente) */
+  const anoAtual=new Date().getFullYear(),anos=[];for(let a=Math.min(1950,y);a<=Math.max(anoAtual+50,y);a++)anos.push(a);
   let dias='';for(let i=0;i<42;i++){const d=new Date(ini.getFullYear(),ini.getMonth(),ini.getDate()+i),iso=isoDe(d),dw=d.getDay();
     const cls=['dp-d',d.getMonth()!==m?'fora':'',dw===0||dw===6?'fds':'',iso===hoje?'hoje':'',iso===sel?'sel':'',fx&&iso>fx[0]&&iso<fx[1]?'faixa':''].filter(Boolean).join(' ');
     dias+=`<button type="button" class="${cls}" data-iso="${iso}" aria-label="${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}">${d.getDate()}</button>`}
