@@ -824,8 +824,7 @@ async function resetDB(){
   bg.querySelector('form').onsubmit=async e=>{e.preventDefault();const btn=e.target.querySelector('.btn.danger');if(btn.disabled)return;btn.disabled=true;btn.textContent='Zerando...';
     try{await q(sb.rpc('admin_zerar_banco',{senha:e.target.senha.value}));
       bg.remove();
-      /* o banco voltou ao estado inicial: sai do sistema para entrar de novo com o admin */
-      await confirmBox('Banco zerado. Agora só existe o usuário "admin", com a senha padrão. Entre novamente e troque a senha.','Entendi',false);
+      /* o banco voltou ao estado inicial: volta direto para o login */
       await sb.auth.signOut()}
     catch(err){console.error(err);toast(/senha incorreta/i.test(err.message||'')?'Senha incorreta. O banco não foi zerado.':errMsg(err),1);
       btn.disabled=false;btn.textContent='Zerar banco';e.target.senha.value='';e.target.senha.focus()}};
