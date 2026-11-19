@@ -211,6 +211,22 @@ grant  execute on function public.bootstrap_admin(text)         to authenticated
 grant  execute on function public.excluir_usuario(uuid)         to authenticated;
 grant  execute on function public.remover_login_orfao(text)     to authenticated;
 
+-- ---------- Chamado de manutenção concluído fica travado ----------
+-- Não pode ser editado nem excluído. (O "Zerar sistema" usa TRUNCATE, que não passa por esta trava.)
+create or replace function public.bv_travar_concluido() returns trigger
+language plpgsql as $$
+begin
+  if old.status = 'Concluído' then
+    if tg_op = 'DELETE' then raise exception 'Chamado concluído não pode ser excluído'; end if;
+    raise exception 'Chamado concluído não pode ser editado';
+  end if;
+  if tg_op = 'DELETE' then return old; end if;
+  return new;
+end $$;
+drop trigger if exists bv_travar_concluido on public.maintenance;
+create trigger bv_travar_concluido before update or delete on public.maintenance
+  for each row execute function public.bv_travar_concluido();
+
 -- ---------- Confirmação automática dos logins internos ----------
 create or replace function public.bv_autoconfirmar() returns trigger
 language plpgsql security definer set search_path = public as $$
