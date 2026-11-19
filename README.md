@@ -43,6 +43,17 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - Empresa, categoria (lista ou categoria nova), responsável, telefone, valor mensal, vencimento e **link do contrato** (PDF/Drive).
 - Filtro por categoria e edição.
 
+### Orçamentos
+- O menu **Orçamentos** (abaixo de Fornecedores & Contratos) controla as cotações. Pelo regimento, cada serviço ou manutenção precisa de **3 orçamentos**.
+- **Nova Cotação:** informe o serviço, o local/setor, a categoria, a data, a descrição e até 3 orçamentos (empresa, valor, prazo, contato e observações). Dá para salvar com menos de 3 e completar depois.
+- **Cartões:** mostram o progresso (ex.: *2 de 3 orçamentos*), o menor valor e o status: *Em cotação*, *Pronta para aprovar*, *Aprovado* ou *Cancelado*.
+- **Aprovação:** clique na cotação para ver a comparação lado a lado, com o menor preço destacado. O botão **Aprovar** só aparece com os 3 orçamentos lançados.
+  - Se o escolhido **não for o de menor valor**, o sistema pede uma **justificativa**.
+  - Depois de aprovada, a cotação fica **travada**: não pode mais ser editada nem excluída. O mesmo vale para cotações **canceladas**. A trava também está no banco.
+- **Resumo:** quantas estão em cotação, quantas estão prontas para aprovar, quantas foram aprovadas e o total aprovado.
+- **Filtros:** busca por serviço ou empresa, por status e por local.
+- **Exportar PDF:** gera a tabela com os 3 orçamentos de cada cotação, o aprovado, quem aprovou e a justificativa, respeitando os filtros.
+
 ### Gestão de Usuários
 - Cadastro de usuários com função: Síndico, Subsíndico, Conselho Fiscal ou Administrativo.
 - Exclusão de usuários. O `admin` (Principal) e o próprio usuário logado não podem ser excluídos.
@@ -57,7 +68,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - O PDF é gerado no próprio aparelho, sem serviço externo. No celular, é salvo em Downloads/Arquivos.
 
 ### Banco & Logs
-- **Fazer backup do banco:** baixa um arquivo `.json` com todos os dados do Supabase (movimentações, fornecedores, manutenções, usuários e logs). As senhas não entram no backup.
+- **Fazer backup do banco:** baixa um arquivo `.json` com todos os dados do Supabase (movimentações, fornecedores, manutenções, orçamentos, usuários e logs). As senhas não entram no backup.
 - **Zerar sistema:** pede confirmação e a **senha do usuário admin** (conferida no banco). Apaga todos os dados e usuários; só o `admin` permanece, com a senha inicial. Depois volta para a tela de login.
 - Últimos 50 registros de atividade: logins, cadastros, edições, exclusões, backups.
 
@@ -107,7 +118,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 **3. Criar as tabelas**
 1. **SQL Editor → + New query**.
 2. Cole todo o arquivo [`supabase.sql`](supabase.sql) e clique em **Run**. Deve aparecer **Success**.
-3. Em **Table Editor** devem aparecer: `perfis`, `transactions`, `suppliers`, `maintenance`, `audit_logs` e `bv_privado`.
+3. Em **Table Editor** devem aparecer: `perfis`, `transactions`, `suppliers`, `maintenance`, `quotes`, `config`, `audit_logs` e `bv_privado`.
 
 **3.1. Cadastrar a senha inicial do admin**
 

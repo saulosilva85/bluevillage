@@ -77,6 +77,26 @@ create table if not exists public.maintenance (
   created_at timestamptz not null default now()
 );
 
+-- Orçamentos: cada cotação guarda até 3 orçamentos (empresa, valor, prazo, contato, observações)
+create table if not exists public.quotes (
+  id               bigint generated always as identity primary key,
+  titulo           text not null,
+  local            text,
+  categoria        text,
+  data             date not null default current_date,
+  descricao        text,
+  orcamentos       jsonb not null default '[]'::jsonb,
+  status           text not null default 'Em cotação' check (status in ('Em cotação', 'Aprovado', 'Cancelado')),
+  escolhido        int,
+  empresa_aprovada text,
+  valor_aprovado   numeric(14,2),
+  justificativa    text,
+  aprovado_por     text,
+  aprovado_em      timestamptz,
+  created_by       text,
+  created_at       timestamptz not null default now()
+);
+
 create table if not exists public.audit_logs (
   id        bigint generated always as identity primary key,
   action    text not null,
@@ -117,11 +137,14 @@ alter table public.suppliers    enable row level security;
 alter table public.maintenance  enable row level security;
 alter table public.audit_logs   enable row level security;
 alter table public.config       enable row level security;
+alter table public.quotes       enable row level security;
 
 drop policy if exists ativos on public.transactions;
 drop policy if exists ativos on public.suppliers;
 drop policy if exists ativos on public.maintenance;
 drop policy if exists ativos on public.config;
+drop policy if exists ativos on public.quotes;
+create policy ativos on public.quotes for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 create policy ativos on public.config for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 create policy ativos on public.transactions for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 create policy ativos on public.suppliers    for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
@@ -207,7 +230,7 @@ begin
   if not public.eh_ativo() then raise exception 'Não autorizado'; end if;
   select encrypted_password into h from auth.users where email = 'admin@bluevillage.app';
   if h is null or h <> extensions.crypt(coalesce(senha, ''), h) then raise exception 'Senha incorreta'; end if;
-  truncate table public.transactions, public.suppliers, public.maintenance, public.audit_logs restart identity;
+  truncate table public.transactions, public.suppliers, public.maintenance, public.quotes, public.audit_logs restart identity;
   delete from auth.users where email <> 'admin@bluevillage.app' and email like '%@bluevillage.app';
   -- encerra as sessões abertas (os aparelhos voltam para a tela de login)
   delete from auth.sessions where true;
@@ -245,6 +268,23 @@ drop trigger if exists bv_travar_concluido on public.maintenance;
 create trigger bv_travar_concluido before update or delete on public.maintenance
   for each row execute function public.bv_travar_concluido();
 
+-- ---------- Cotação aprovada ou cancelada fica travada ----------
+create or replace function public.bv_travar_cotacao() returns trigger
+language plpgsql as $$
+begin
+  if old.status in ('Aprovado', 'Cancelado') then
+    raise exception 'Cotação % não pode ser alterada nem excluída', case when old.status = 'Aprovado' then 'aprovada' else 'cancelada' end;
+  end if;
+  if tg_op = 'DELETE' then return old; end if;
+  if new.status = 'Aprovado' and jsonb_array_length(coalesce(new.orcamentos, '[]'::jsonb)) < 3 then
+    raise exception 'São necessários 3 orçamentos para aprovar';
+  end if;
+  return new;
+end $$;
+drop trigger if exists bv_travar_cotacao on public.quotes;
+create trigger bv_travar_cotacao before update or delete on public.quotes
+  for each row execute function public.bv_travar_cotacao();
+
 -- ---------- Confirmação automática dos logins internos ----------
 create or replace function public.bv_autoconfirmar() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -262,7 +302,7 @@ create trigger bv_autoconfirmar before insert on auth.users
 do $$
 declare t text;
 begin
-  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config'] loop
+  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config','quotes'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
       execute format('alter publication supabase_realtime add table public.%I', t);
     end if;
