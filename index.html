@@ -817,7 +817,7 @@
                     await q(sb.rpc('bootstrap_admin', { senha: senhaBootstrap || '' })); senhaBootstrap = null;
                     p = await q(sb.from('perfis').select('*').eq('id', user.id).maybeSingle());
                 }
-                if (!p) { justLoggedIn = false; await sb.auth.signOut(); loginErr.textContent = 'Usuário sem acesso. Procure o administrador.'; return; }
+                if (!p) { justLoggedIn = false; await encerrarSessao(); loginErr.textContent = 'Usuário sem acesso. Procure o administrador.'; return; }
                 currentUserLoggedIn = { id: p.id, username: p.usuario, name: p.nome, role: p.funcao };
                 document.getElementById('login').classList.add('hidden');
                 document.getElementById('app-screen').classList.remove('hidden');
@@ -826,7 +826,7 @@
                 switchTab('dashboard');
                 iniciarTempoReal();
                 setBusy(false);
-            } catch (err) { console.error(err); sessionUid = null; justLoggedIn = false; await sb.auth.signOut().catch(() => {}); loginErr.textContent = errMsg(err); setBusy(false); }
+            } catch (err) { console.error(err); sessionUid = null; justLoggedIn = false; await encerrarSessao(); loginErr.textContent = errMsg(err); setBusy(false); }
         }
 
         function showLogin() {
@@ -838,11 +838,19 @@
             setBusy(false);
         }
 
+        /* encerra a sessão SEMPRE: limpa o login deste aparelho e volta para a tela de login,
+           mesmo que o servidor recuse o "logout" (ex.: depois de zerar o sistema a sessão já foi invalidada) */
+        async function encerrarSessao() {
+            try { await Promise.race([sb.auth.signOut({ scope: 'local' }), new Promise(r => setTimeout(r, 3000))]); } catch (e) { console.warn(e); }
+            try { Object.keys(sessionStorage).filter(k => k.startsWith('sb-')).forEach(k => sessionStorage.removeItem(k)); } catch (e) {}
+            showLogin();
+        }
+
         async function logout() {
             if (!(await confirmBox('Deseja sair do sistema?', 'Sair'))) return;
             log('LOGOUT', `Usuário ${currentUserLoggedIn ? currentUserLoggedIn.name : ''} saiu do sistema.`);
             await new Promise(r => setTimeout(r, 200));
-            await sb.auth.signOut();
+            await encerrarSessao();
         }
 
         /* ---------- atualização automática entre aparelhos ---------- */
@@ -1086,7 +1094,7 @@
                     try { const cfg = await q(sb.from('config').select('salario').eq('id', 'main').maybeSingle()); if (cfg && Number(cfg.salario) > 0) SALARIO_MINIMO = Number(cfg.salario); } catch (e) { console.warn('config', e); }
                     mostrarSalario();
                     globalMaintenance = maint.map(m => ({ ...m, dueDate: m.due_date }));
-                    if (!users.some(u => u.id === sessionUid)) { showToast('Seu acesso foi removido.', true); sb.auth.signOut(); return; }
+                    if (!users.some(u => u.id === sessionUid)) { showToast('Seu acesso foi removido.', true); encerrarSessao(); return; }
                     renderAll(logs);
                 } catch (err) { console.error(err); showToast(errMsg(err), true); }
                 finally { carregando = null; }
@@ -1685,7 +1693,7 @@
             try {
                 await q(sb.rpc('zerar_sistema', { senha: document.getElementById('zerar-senha').value }));
                 closeModal('modal-zerar');
-                await sb.auth.signOut();   // volta direto para o login
+                await encerrarSessao();   // volta direto para o login
             } catch (err) {
                 console.error(err);
                 showToast(/senha incorreta/i.test(err.message || '') ? 'Senha do administrador incorreta. Nada foi apagado.' : errMsg(err), true);

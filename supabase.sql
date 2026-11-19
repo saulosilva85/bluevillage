@@ -209,6 +209,8 @@ begin
   if h is null or h <> extensions.crypt(coalesce(senha, ''), h) then raise exception 'Senha incorreta'; end if;
   truncate table public.transactions, public.suppliers, public.maintenance, public.audit_logs restart identity;
   delete from auth.users where email <> 'admin@bluevillage.app' and email like '%@bluevillage.app';
+  -- encerra as sessões abertas (os aparelhos voltam para a tela de login)
+  delete from auth.sessions where true;
   update auth.users set encrypted_password = public.senha_inicial_hash(), updated_at = now()
     where email = 'admin@bluevillage.app';
   update public.perfis set nome = 'Anthony Melo', funcao = 'Síndico' where usuario = 'admin';
