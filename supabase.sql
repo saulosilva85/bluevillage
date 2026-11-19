@@ -11,7 +11,6 @@ create extension if not exists pgcrypto with schema extensions;
 drop table if exists public.lanc   cascade;
 drop table if exists public.manut  cascade;
 drop table if exists public.forn   cascade;
-drop table if exists public.config cascade;
 drop table if exists public.logs   cascade;
 do $$ begin
   if exists (select 1 from information_schema.columns
@@ -86,6 +85,20 @@ create table if not exists public.audit_logs (
 );
 create index if not exists audit_logs_ts_idx on public.audit_logs (timestamp desc);
 
+-- Parâmetros do sistema (salário mínimo usado no teto de gastos: 5x por mês)
+create table if not exists public.config (
+  id      text primary key default 'main',
+  salario numeric(14,2) not null default 1518
+);
+-- Se existir a tabela config da versão antiga (sem a coluna salario), ela é recriada
+do $$ begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='config' and column_name='salario') then
+    drop table public.config cascade;
+    create table public.config (id text primary key default 'main', salario numeric(14,2) not null default 1518);
+  end if;
+end $$;
+insert into public.config (id) values ('main') on conflict (id) do nothing;
+
 -- Senha inicial do admin: guardada só como hash, numa tabela que o site não consegue ler
 create table if not exists public.bv_privado (chave text primary key, valor text not null);
 alter table public.bv_privado enable row level security;
@@ -103,10 +116,13 @@ alter table public.transactions enable row level security;
 alter table public.suppliers    enable row level security;
 alter table public.maintenance  enable row level security;
 alter table public.audit_logs   enable row level security;
+alter table public.config       enable row level security;
 
 drop policy if exists ativos on public.transactions;
 drop policy if exists ativos on public.suppliers;
 drop policy if exists ativos on public.maintenance;
+drop policy if exists ativos on public.config;
+create policy ativos on public.config for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 create policy ativos on public.transactions for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 create policy ativos on public.suppliers    for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 create policy ativos on public.maintenance  for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
@@ -244,7 +260,7 @@ create trigger bv_autoconfirmar before insert on auth.users
 do $$
 declare t text;
 begin
-  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs'] loop
+  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
       execute format('alter publication supabase_realtime add table public.%I', t);
     end if;

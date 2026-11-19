@@ -22,7 +22,8 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 ### Dashboard & Torres
 - **Indicadores:** Conta Principal, Total de Despesas do Mês, Fundo de Reserva, Salão de Festa e Contratos Ativos.
 - Cada conta mostra o próprio saldo (entradas − saídas), alimentado pelas movimentações do Financeiro.
-- **Alerta de teto de gastos:** 5 salários mínimos (R$ 1.518,00 × 5 = R$ 7.590,00), sobre as saídas da **Conta Principal** no mês atual. Fica verde, amarelo (a partir de 80%) ou vermelho (acima do teto).
+- **Alerta de teto de gastos:** pelo regimento, o síndico pode gastar por mês até **5 salários mínimos**. O alerta considera as saídas da **Conta Principal** no mês atual.
+- **Salário mínimo:** alterado no **Financeiro**, pelo link discreto ⚙ *Salário mínimo* no fim da tela. O valor fica salvo no banco e o teto (5x) do Dashboard é recalculado na hora, em todos os aparelhos. Essa informação não aparece no PDF. Fica verde, amarelo (a partir de 80%) ou vermelho (acima do teto).
 - **Relatório por torre:** quantidade de chamados por torre. Clicando na torre, aparecem os chamados e os lançamentos financeiros dela.
 
 ### Financeiro
