@@ -43,12 +43,16 @@ create table if not exists public.transactions (
   description text not null,
   category    text not null,
   type        text not null check (type in ('entrada', 'saida')),
+  account     text not null default 'Conta Principal',
   amount      numeric(14,2) not null default 0,
   date        date not null,
   tower       text not null default 'Geral',
   created_by  text,
   created_at  timestamptz not null default now()
 );
+
+-- Conta de cada movimentação: Conta Principal, Fundo de Reserva ou Salão de Festa
+alter table public.transactions add column if not exists account text not null default 'Conta Principal';
 
 create table if not exists public.suppliers (
   id              bigint generated always as identity primary key,
@@ -177,6 +181,25 @@ begin
   delete from auth.users u where u.email = lower(email_alvo)
     and not exists (select 1 from public.perfis p where p.id = u.id);
 end $$;
+
+-- Zerar o sistema: exige a senha do usuário "admin" (conferida aqui no banco).
+-- Apaga todos os dados e usuários; só o "admin" permanece, com a senha inicial.
+create or replace function public.zerar_sistema(senha text) returns void
+language plpgsql security definer set search_path = public, extensions as $$
+declare h text;
+begin
+  if not public.eh_ativo() then raise exception 'Não autorizado'; end if;
+  select encrypted_password into h from auth.users where email = 'admin@bluevillage.app';
+  if h is null or h <> extensions.crypt(coalesce(senha, ''), h) then raise exception 'Senha incorreta'; end if;
+  truncate table public.transactions, public.suppliers, public.maintenance, public.audit_logs restart identity;
+  delete from auth.users where email <> 'admin@bluevillage.app' and email like '%@bluevillage.app';
+  update auth.users set encrypted_password = public.senha_inicial_hash(), updated_at = now()
+    where email = 'admin@bluevillage.app';
+  update public.perfis set nome = 'Anthony Melo', funcao = 'Síndico' where usuario = 'admin';
+  insert into public.audit_logs (action, details) values ('ZERAR_SISTEMA', 'Sistema zerado pelo administrador.');
+end $$;
+revoke execute on function public.zerar_sistema(text)          from public, anon;
+grant  execute on function public.zerar_sistema(text)          to authenticated;
 
 revoke execute on function public.senha_inicial_hash()          from public, anon, authenticated;
 revoke execute on function public.bootstrap_admin(text)         from public, anon;

@@ -20,12 +20,14 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 ## 📋 Módulos
 
 ### Dashboard & Torres
-- **Indicadores:** Saldo em Conta, Total de Despesas do Mês, Fundo de Reserva e Contratos Ativos.
-- **Alerta de teto de gastos:** 5 salários mínimos (R$ 1.518,00 × 5 = R$ 7.590,00), sobre as despesas do mês atual. Fica verde, amarelo (a partir de 80%) ou vermelho (acima do teto).
+- **Indicadores:** Conta Principal, Total de Despesas do Mês, Fundo de Reserva, Salão de Festa e Contratos Ativos.
+- Cada conta mostra o próprio saldo (entradas − saídas), alimentado pelas movimentações do Financeiro.
+- **Alerta de teto de gastos:** 5 salários mínimos (R$ 1.518,00 × 5 = R$ 7.590,00), sobre as saídas da **Conta Principal** no mês atual. Fica verde, amarelo (a partir de 80%) ou vermelho (acima do teto).
 - **Relatório por torre:** quantidade de chamados por torre. Clicando na torre, aparecem os chamados e os lançamentos financeiros dela.
 
 ### Financeiro
-- Movimentações de **Entrada** e **Saída (Despesa)**, com descrição, categoria, torre (ou Condomínio Geral), valor e data.
+- Movimentações de **Entrada** e **Saída (Despesa)**, com descrição, categoria, **conta**, torre (ou Condomínio Geral), valor e data.
+- **Contas:** Conta Principal, Fundo de Reserva e Salão de Festa. Uma entrada soma e uma saída subtrai do card da conta escolhida no Dashboard.
 - Clique na linha para ver os detalhes (quem lançou e quando). Botões para **editar** e **excluir**.
 
 ### Manutenção & Torres
@@ -43,7 +45,14 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - **Alterar Minha Senha** (pede a senha atual).
 
 ### Banco & Logs
-- Últimos 50 registros de atividade: logins, cadastros, edições e exclusões.
+- **Fazer backup do banco:** baixa um arquivo `.json` com todos os dados do Supabase (movimentações, fornecedores, manutenções, usuários e logs). As senhas não entram no backup.
+- **Zerar sistema:** pede confirmação e a **senha do usuário admin** (conferida no banco). Apaga todos os dados e usuários; só o `admin` permanece, com a senha inicial. Depois volta para a tela de login.
+- Últimos 50 registros de atividade: logins, cadastros, edições, exclusões, backups.
+
+### Calendário
+- Todos os campos de data usam o **calendário do próprio sistema** (formato dd/mm/aaaa), com listas de mês e ano (1950 até 50 anos à frente), botão **Hoje** e destaque para hoje e fins de semana.
+- No celular, abre no centro da tela com botões grandes.
+- Fecha ao escolher a data, ao tocar fora, com Esc, ao fechar a janela ou ao trocar de tela.
 
 ---
 
@@ -53,7 +62,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - A **segurança por linha (RLS)** do `supabase.sql` só libera os dados para usuários **logados e cadastrados**.
 - As telas se atualizam sozinhas quando alguém lança algo em outro aparelho. Um usuário excluído é desconectado na hora.
 - O plano gratuito do Supabase pausa projetos sem uso por 7 dias. A tarefa automática `.github/workflows/supabase-keepalive.yml` consulta o banco a cada 3 dias para evitar isso (aparece em **Actions** como *Manter Supabase ativo*). Se o projeto pausar, clique em **Restore project** no painel do Supabase.
-- **Backup:** no plano gratuito, use o **Table Editor** do Supabase, abra cada tabela e clique em **Export → CSV**.
+- **Backup:** use o botão *Fazer backup do banco* em **Banco & Logs** (recomendado uma vez por semana). Alternativa: no **Table Editor** do Supabase, abra cada tabela e clique em **Export → CSV**.
 
 ---
 

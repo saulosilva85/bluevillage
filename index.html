@@ -48,13 +48,44 @@
         .pw-eye svg{width:20px;height:20px}
         #login .login-card .pw-wrap{margin-bottom:18px}#login .login-card .pw-wrap input{margin-bottom:0}
 
+        /* ===== campo de data + calendário próprio do sistema ===== */
+        .dp-btn{width:100%;background:#0f172a;border:1px solid #334155;border-radius:.5rem;padding:.625rem;color:#f1f5f9;
+          display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left;line-height:1.5rem}
+        .dp-btn:focus-visible,.dp-btn.open{border-color:#3b82f6;outline:none}
+        .dp-btn .vazio{color:#64748b}
+        .dp-btn svg{width:18px;height:18px;color:#60a5fa;flex-shrink:0}
+        #dp{position:fixed;z-index:70;width:320px;background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px;box-shadow:0 18px 40px rgba(0,0,0,.55);user-select:none;color:#e2e8f0}
+        #dp .dp-h{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+        #dp .dp-nav{width:34px;height:34px;flex-shrink:0;border:0;border-radius:7px;background:#273449;color:#fff;cursor:pointer;display:grid;place-items:center}
+        #dp .dp-nav svg{width:16px;height:16px}
+        #dp .dp-sel{position:relative;flex:1;min-width:0}#dp .dp-sel[data-sel=a]{flex:0 0 92px}
+        #dp .dp-selb{width:100%;height:34px;background:#0f172a;color:#fff;border:1px solid #334155;border-radius:7px;padding:0 8px;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:4px;cursor:pointer}
+        #dp .dp-selb.open{border-color:#60a5fa}#dp .dp-selb svg{width:14px;height:14px;flex-shrink:0;transition:transform .15s}#dp .dp-selb.open svg{transform:rotate(180deg)}
+        #dp .dp-list{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:2;max-height:252px;overflow-y:auto;overscroll-behavior:contain;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:4px;box-shadow:0 12px 28px rgba(0,0,0,.5)}
+        #dp .dp-list button{display:block;width:100%;text-align:left;height:34px;padding:0 10px;border:0;border-radius:6px;background:none;color:#e2e8f0;font-size:14px;cursor:pointer}
+        #dp .dp-list button.sel{background:#93c5fd;color:#0f172a;font-weight:700}
+        #dp .dp-g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+        #dp .dp-w{font-size:11.5px;color:#94a3b8;font-weight:700;padding:4px 0}
+        #dp .dp-d{height:36px;border:0;border-radius:8px;background:none;color:#e2e8f0;cursor:pointer;font-size:14px}
+        #dp .dp-d.fora{color:#475569}#dp .dp-d.fds{color:#93c5fd}#dp .dp-d.fora.fds{color:#475569}
+        #dp .dp-d.hoje{box-shadow:inset 0 0 0 1.5px #60a5fa;font-weight:700}
+        #dp .dp-d.sel{background:#2563eb;color:#fff;font-weight:700}
+        #dp .dp-f{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid #334155}
+        #dp .dp-f button{background:none;border:0;color:#60a5fa;font-weight:600;cursor:pointer;padding:8px 10px;border-radius:7px;font-size:14px}
+        @media(hover:hover){#dp .dp-d:hover,#dp .dp-list button:not(.sel):hover{background:#273449}#dp .dp-d.sel:hover{background:#1d4ed8}#dp .dp-nav:hover,#dp .dp-f button:hover{background:#334155}}
+        #dp-bg{position:fixed;inset:0;z-index:69;background:rgba(2,6,23,.55);display:none}
+        .campo-label{display:block;font-size:12px;color:#94a3b8;margin:0 0 4px 2px}
+
         /* celular */
         #backdrop{display:none}
         @media(max-width:767px){
           #sidebar{position:fixed;top:0;bottom:0;left:0;z-index:45;width:min(280px,85vw);background:#1e293b;transform:translateX(-100%);transition:transform .2s;overflow-y:auto;padding-top:20px}
           #sidebar.open{transform:none}
           #backdrop.show{display:block;position:fixed;inset:0;z-index:44;background:rgba(2,6,23,.6)}
-          #app-screen input,#app-screen select,#app-screen textarea{font-size:16px} /* evita zoom automático no iPhone */
+          #app-screen input,#app-screen select,#app-screen textarea,.modal-campos input,.modal-campos select,.modal-campos textarea,.dp-btn{font-size:16px} /* evita zoom automático no iPhone */
+          #dp{left:50%!important;top:50%!important;transform:translate(-50%,-50%);width:min(340px,94vw)}
+          #dp .dp-d{height:42px;font-size:16px}#dp .dp-nav{width:42px;height:42px}#dp .dp-selb,#dp .dp-list button{height:42px;font-size:16px}#dp .dp-list{max-height:300px}
+          #dp-bg.show{display:block}
         }
     </style>
 </head>
@@ -133,9 +164,9 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-6">
                         <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl">
-                            <p class="text-sm text-slate-400">Saldo em Conta</p>
+                            <p class="text-sm text-slate-400">Conta Principal</p>
                             <h4 id="dash-balance" class="text-2xl font-bold text-emerald-400 mt-2">R$ 0,00</h4>
                         </div>
                         <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl">
@@ -145,6 +176,10 @@
                         <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl">
                             <p class="text-sm text-slate-400">Fundo de Reserva</p>
                             <h4 id="dash-reserve" class="text-2xl font-bold text-blue-400 mt-2">R$ 0,00</h4>
+                        </div>
+                        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl">
+                            <p class="text-sm text-slate-400">Salão de Festa</p>
+                            <h4 id="dash-salao" class="text-2xl font-bold text-pink-400 mt-2">R$ 0,00</h4>
                         </div>
                         <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl">
                             <p class="text-sm text-slate-400">Contratos Ativos</p>
@@ -212,6 +247,7 @@
                                     <th class="p-4">Data</th>
                                     <th class="p-4">Descrição</th>
                                     <th class="p-4">Categoria</th>
+                                    <th class="p-4">Conta</th>
                                     <th class="p-4">Torre</th>
                                     <th class="p-4">Tipo</th>
                                     <th class="p-4">Valor</th>
@@ -336,6 +372,14 @@
                 <!-- LOGS -->
                 <div id="tab-database" class="hidden space-y-6">
                     <h3 class="text-xl font-bold">Banco de Dados & Logs de Atividade</h3>
+                    <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl space-y-4">
+                        <h4 class="font-bold text-slate-100"><i class="fa-solid fa-database mr-2 text-blue-400"></i>Backup e Manutenção do Banco</h4>
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="backupBanco(this)" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-download mr-1"></i> Fazer backup do banco</button>
+                            <button onclick="abrirZerar()" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium"><i class="fa-solid fa-trash mr-1"></i> Zerar sistema</button>
+                        </div>
+                        <p class="text-xs text-slate-400">O backup baixa um arquivo <code>.json</code> com todos os dados do Supabase (movimentações, fornecedores, manutenções, usuários e logs; as senhas não entram). Zerar o sistema apaga todos os dados e usuários, mantém só o <strong>admin</strong> com a senha inicial e exige a senha do administrador.</p>
+                    </div>
                     <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl">
                         <p class="text-sm text-slate-300 mb-4">Banco de dados ativo: <code class="bg-slate-900 px-2 py-1 rounded text-blue-400">Supabase (nuvem)</code></p>
                         <div class="space-y-2" id="logs-list"></div>
@@ -387,6 +431,21 @@
         </div>
     </div>
 
+    <div id="modal-zerar" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-md">
+            <h4 class="text-lg font-bold mb-2 text-rose-400"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Zerar sistema</h4>
+            <p class="text-sm text-slate-300 mb-4">Isso apaga <strong>todas</strong> as movimentações, fornecedores, manutenções, logs e usuários, em todos os aparelhos. Só o usuário <strong>admin</strong> permanece, com a senha inicial. Esta ação não pode ser desfeita.</p>
+            <form id="form-zerar" onsubmit="zerarSistema(event)" class="space-y-4" autocomplete="off">
+                <label class="campo-label" for="zerar-senha">Senha do administrador (usuário admin)</label>
+                <input type="password" id="zerar-senha" required autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-zerar')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 rounded-lg text-sm text-white">Zerar sistema</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="modal-user" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
         <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-md">
             <h4 class="text-lg font-bold mb-4">Cadastrar Novo Usuário</h4>
@@ -429,6 +488,15 @@
                 <input type="hidden" id="fin-id">
                 <input type="text" id="fin-desc" placeholder="Descrição" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
                 <input type="text" id="fin-cat" placeholder="Categoria" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                <div>
+                    <label class="campo-label" for="fin-account">Conta</label>
+                    <select id="fin-account" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                        <option value="Conta Principal">Conta Principal</option>
+                        <option value="Fundo de Reserva">Fundo de Reserva</option>
+                        <option value="Salão de Festa">Salão de Festa</option>
+                    </select>
+                </div>
+                <label class="campo-label" for="fin-tower" style="margin-bottom:-12px">Torre / Setor</label>
                 <select id="fin-tower" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
                     <option value="Geral">Condomínio Geral</option>
                     <option value="Torre Jurerê">Torre Jurerê</option>
@@ -440,7 +508,7 @@
                     <option value="saida">Saída (Despesa)</option>
                 </select>
                 <input type="number" step="0.01" min="0.01" inputmode="decimal" id="fin-amount" placeholder="Valor (R$)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
-                <input type="date" id="fin-date" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                <div><input type="hidden" id="fin-date" data-dp data-obrig><button type="button" class="dp-btn" data-for="fin-date" onclick="abrirCal('fin-date',this)" aria-label="Escolher data"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></button></div>
                 <div class="flex justify-end space-x-2">
                     <button type="button" onclick="closeModal('modal-finance')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
                     <button type="submit" class="px-4 py-2 bg-blue-600 rounded-lg text-sm">Salvar</button>
@@ -476,7 +544,7 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <input type="number" step="0.01" min="0" inputmode="decimal" id="sup-value" placeholder="Valor Mensal (R$)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
-                    <input type="date" id="sup-expiry" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                    <div><input type="hidden" id="sup-expiry" data-dp data-obrig><button type="button" class="dp-btn" data-for="sup-expiry" onclick="abrirCal('sup-expiry',this)" aria-label="Escolher data"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></button></div>
                 </div>
                 <input type="url" id="sup-contract-link" placeholder="Link do Contrato (PDF/Drive)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
                 <div class="flex justify-end space-x-2 pt-2">
@@ -509,7 +577,7 @@
                     <option value="Em Andamento">Em Andamento</option>
                     <option value="Concluído">Concluído</option>
                 </select>
-                <input type="date" id="maint-date" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                <div><input type="hidden" id="maint-date" data-dp data-obrig><button type="button" class="dp-btn" data-for="maint-date" onclick="abrirCal('maint-date',this)" aria-label="Escolher data"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></button></div>
                 <textarea id="maint-notes" placeholder="Observações..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></textarea>
                 <div class="flex justify-end space-x-2">
                     <button type="button" onclick="closeModal('modal-maintenance')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
@@ -529,6 +597,7 @@
         const SB_VER = '2.45.4';
         const EMAIL_DOMAIN = 'bluevillage.app'; // domínio interno dos logins (nenhum e-mail é enviado)
 
+        const CONTA_COR = { 'Conta Principal': 'text-emerald-400', 'Fundo de Reserva': 'text-blue-400', 'Salão de Festa': 'text-pink-400' };
         const SALARIO_MINIMO = 1518.00;
         const TETO_GASTOS = SALARIO_MINIMO * 5;
         let globalSuppliers = [];
@@ -587,6 +656,7 @@
 
         /* janela de confirmação (substitui o confirm() do navegador, que pode ser bloqueado no celular) */
         function confirmBox(message, okText = 'Confirmar') {
+            fecharCal();
             return new Promise(resolve => {
                 const m = document.getElementById('modal-confirm');
                 document.getElementById('confirm-message').innerText = message;
@@ -697,6 +767,7 @@
         }
 
         function showLogin() {
+            fecharCal();
             pararTempoReal(); sessionUid = null; currentUserLoggedIn = null; toggleMenu(false);
             document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
             document.getElementById('app-screen').classList.add('hidden');
@@ -725,10 +796,12 @@
 
         /* ---------- navegação ---------- */
         function toggleMenu(force) {
+            fecharCal();
             const sb2 = document.getElementById('sidebar'), open = force ?? !sb2.classList.contains('open');
             sb2.classList.toggle('open', open); document.getElementById('backdrop').classList.toggle('show', open);
         }
         function switchTab(tab) {
+            fecharCal();
             ['dashboard', 'finance', 'maintenance', 'suppliers', 'users', 'database'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
                 document.getElementById(`btn-${t}`).classList.remove('bg-blue-600', 'text-white');
@@ -748,6 +821,7 @@
                 document.getElementById('form-supplier').reset();
                 document.getElementById('sup-id').value = "";
                 document.getElementById('custom-category-container').classList.add('hidden');
+                document.getElementById('sup-expiry').value = '';
             } else if (id === 'modal-maintenance') {
                 document.getElementById('maint-modal-title').innerText = "Registrar Manutenção";
                 document.getElementById('form-maintenance').reset();
@@ -758,16 +832,19 @@
                 document.getElementById('form-finance').reset();
                 document.getElementById('fin-id').value = "";
                 document.getElementById('fin-date').value = today();
+            } else if (id === 'modal-zerar') {
+                document.getElementById('form-zerar').reset();
             } else if (id === 'modal-user') {
                 document.getElementById('form-user').reset();
             } else if (id === 'modal-password') {
                 document.getElementById('form-password').reset();
             }
+            fecharCal(); syncDatas();
             document.getElementById(id).classList.remove('hidden');
         }
 
-        function closeSupplierModal() { document.getElementById('modal-supplier').classList.add('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function closeSupplierModal() { fecharCal(); document.getElementById('modal-supplier').classList.add('hidden'); }
+        function closeModal(id) { fecharCal(); document.getElementById(id).classList.add('hidden'); }
 
         function toggleCustomCategory(val) {
             const container = document.getElementById('custom-category-container');
@@ -796,6 +873,7 @@
             document.getElementById('sup-value').value = sup.monthlyValue || 0;
             document.getElementById('sup-expiry').value = sup.expiryDate || '';
             document.getElementById('sup-contract-link').value = sup.contractLink || '';
+            fecharCal(); syncDatas();
             document.getElementById('modal-supplier').classList.remove('hidden');
         }
 
@@ -811,6 +889,7 @@
             document.getElementById('maint-status').value = m.status || 'Pendente';
             document.getElementById('maint-date').value = m.dueDate || '';
             document.getElementById('maint-notes').value = m.notes || '';
+            fecharCal(); syncDatas();
             document.getElementById('modal-maintenance').classList.remove('hidden');
         }
 
@@ -834,10 +913,12 @@
             document.getElementById('fin-id').value = f.id;
             document.getElementById('fin-desc').value = f.description;
             document.getElementById('fin-cat').value = f.category;
+            document.getElementById('fin-account').value = f.account || 'Conta Principal';
             document.getElementById('fin-tower').value = f.tower || 'Geral';
             document.getElementById('fin-type').value = f.type;
             document.getElementById('fin-amount').value = f.amount;
             document.getElementById('fin-date').value = f.date;
+            fecharCal(); syncDatas();
             document.getElementById('modal-finance').classList.remove('hidden');
         }
 
@@ -874,6 +955,7 @@
             document.getElementById('fin-detail-content').innerHTML = `
                 <p><strong>Descrição:</strong> ${esc(f.description)}</p>
                 <p><strong>Categoria:</strong> ${esc(f.category)}</p>
+                <p><strong>Conta:</strong> ${esc(f.account || 'Conta Principal')}</p>
                 <p><strong>Torre / Setor:</strong> ${esc(f.tower || 'Geral')}</p>
                 <p><strong>Tipo:</strong> <span class="${f.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${esc(String(f.type).toUpperCase())}</span></p>
                 <p><strong>Valor:</strong> ${brl(f.amount)}</p>
@@ -942,16 +1024,21 @@
 
         function renderAll(logs) {
             /* financeiro */
-            let balance = 0, monthExpenses = 0, finHtml = '';
+            /* cada conta tem seu próprio saldo: entradas somam e saídas subtraem.
+               O teto de gastos considera só as saídas da Conta Principal no mês atual. */
+            const saldos = { 'Conta Principal': 0, 'Fundo de Reserva': 0, 'Salão de Festa': 0 };
+            let monthExpenses = 0, finHtml = '';
             const mes = today().slice(0, 7);
             globalTransactions.forEach(f => {
-                const val = f.amount;
-                if (f.type === 'entrada') balance += val;
-                else { balance -= val; if (String(f.date).slice(0, 7) === mes) monthExpenses += val; }
+                const val = f.amount, conta = f.account || 'Conta Principal';
+                if (!(conta in saldos)) saldos[conta] = 0;
+                if (f.type === 'entrada') saldos[conta] += val;
+                else { saldos[conta] -= val; if (conta === 'Conta Principal' && String(f.date).slice(0, 7) === mes) monthExpenses += val; }
                 finHtml += `<tr onclick="viewFinanceDetail(${f.id})" class="hover:bg-slate-700/35 cursor-pointer">
                     <td class="p-4 whitespace-nowrap">${fmtDate(f.date)}</td>
                     <td class="p-4 font-medium">${esc(f.description)}</td>
                     <td class="p-4">${esc(f.category)}</td>
+                    <td class="p-4"><span class="${CONTA_COR[f.account] || 'text-slate-300'} text-xs font-semibold whitespace-nowrap">${esc(f.account || 'Conta Principal')}</span></td>
                     <td class="p-4"><span class="bg-slate-700 px-2 py-1 rounded text-xs whitespace-nowrap">${esc(f.tower || 'Geral')}</span></td>
                     <td class="p-4"><span class="${f.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${esc(String(f.type).toUpperCase())}</span></td>
                     <td class="p-4 font-semibold whitespace-nowrap">${brl(val)}</td>
@@ -960,10 +1047,11 @@
                         <button onclick="deleteTransaction(${f.id}, event)" class="bg-rose-500/20 hover:bg-rose-600 text-rose-400 hover:text-white px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors" title="Excluir"><i class="fa-solid fa-trash"></i></button>
                     </td></tr>`;
             });
-            document.getElementById('finance-table-body').innerHTML = finHtml || `<tr><td colspan="7" class="p-4 text-center text-slate-500">Nenhuma movimentação.</td></tr>`;
-            const balEl = document.getElementById('dash-balance');
-            balEl.innerText = brl(balance);
-            balEl.classList.toggle('text-emerald-400', balance >= 0); balEl.classList.toggle('text-rose-400', balance < 0);
+            document.getElementById('finance-table-body').innerHTML = finHtml || `<tr><td colspan="8" class="p-4 text-center text-slate-500">Nenhuma movimentação.</td></tr>`;
+            [['dash-balance', 'Conta Principal', 'text-emerald-400'], ['dash-reserve', 'Fundo de Reserva', 'text-blue-400'], ['dash-salao', 'Salão de Festa', 'text-pink-400']].forEach(([elId, conta, cor]) => {
+                const el = document.getElementById(elId), v = saldos[conta];
+                el.innerText = brl(v); el.classList.toggle(cor, v >= 0); el.classList.toggle('text-rose-400', v < 0);
+            });
             document.getElementById('dash-expenses').innerText = brl(monthExpenses);
 
             const alertBanner = document.getElementById('budget-alert-banner');
@@ -1162,12 +1250,14 @@
                 const data = {
                     description: document.getElementById('fin-desc').value.trim(),
                     category: document.getElementById('fin-cat').value.trim(),
+                    account: document.getElementById('fin-account').value,
                     tower: document.getElementById('fin-tower').value,
                     type: document.getElementById('fin-type').value,
                     amount: parseFloat(document.getElementById('fin-amount').value),
                     date: document.getElementById('fin-date').value
                 };
                 if (!(data.amount > 0)) throw { message: 'Informe um valor válido.' };
+                if (!data.date) throw { message: 'Informe a data.' };
                 if (id) {
                     await q(sb.from('transactions').update(data).eq('id', id));
                     log('EDITAR_LANCAMENTO', `Atualizado lançamento #${id}: ${data.description}`);
@@ -1240,9 +1330,114 @@
             });
         }
 
+        /* ---------- calendário próprio do sistema (dd/mm/aaaa) ---------- */
+        const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        const ICO_ESQ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+        const ICO_DIR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+        const ICO_BAIXO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+        const isoDe = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        let dpAlvo = null, dpMes = null, dpLista = null;
+        function syncDatas() {
+            document.querySelectorAll('.dp-btn').forEach(b => {
+                const h = document.getElementById(b.dataset.for); if (!h) return;
+                const sp = b.querySelector('span'); sp.textContent = h.value ? fmtDate(h.value) : 'dd/mm/aaaa'; sp.className = h.value ? '' : 'vazio';
+            });
+        }
+        function abrirCal(id, btn) {
+            if (dpAlvo === id) return fecharCal();
+            fecharCal(); const h = document.getElementById(id); if (!h) return;
+            dpAlvo = id; const base = h.value ? new Date(h.value + 'T12:00:00') : new Date(); dpMes = new Date(base.getFullYear(), base.getMonth(), 1);
+            const el = document.createElement('div'); el.id = 'dp'; el.setAttribute('role', 'dialog'); document.body.appendChild(el);
+            const bg = document.createElement('div'); bg.id = 'dp-bg'; bg.className = 'show'; bg.onclick = fecharCal; document.body.appendChild(bg);
+            btn.classList.add('open'); desenharCal(); posicionarCal(btn);
+        }
+        function posicionarCal(btn) {
+            const el = document.getElementById('dp'); if (!el) return; if (innerWidth < 768) { el.style.left = el.style.top = ''; return; }
+            const r = btn.getBoundingClientRect(), w = el.offsetWidth, hh = el.offsetHeight;
+            let left = Math.min(r.left, innerWidth - w - 8), top = r.bottom + 6; if (top + hh > innerHeight - 8 && r.top - hh - 6 > 8) top = r.top - hh - 6;
+            el.style.left = Math.max(8, left) + 'px'; el.style.top = Math.max(8, Math.min(top, innerHeight - hh - 8)) + 'px';
+        }
+        function fecharCal() {
+            dpLista = null; ['dp', 'dp-bg'].forEach(i => { const e = document.getElementById(i); if (e) e.remove(); });
+            document.querySelectorAll('.dp-btn.open').forEach(b => b.classList.remove('open')); dpAlvo = null;
+        }
+        function listaSel(k, rot, txt, ops, atual) {
+            const ab = dpLista === k;
+            return `<div class="dp-sel" data-sel="${k}"><button type="button" class="dp-selb ${ab ? 'open' : ''}" aria-label="${rot}"><span>${txt}</span>${ICO_BAIXO}</button>
+              ${ab ? `<div class="dp-list">${ops.map(([v, n]) => `<button type="button" data-v="${v}" class="${v === atual ? 'sel' : ''}">${n}</button>`).join('')}</div>` : ''}</div>`;
+        }
+        function desenharCal() {
+            const el = document.getElementById('dp'), h = document.getElementById(dpAlvo); if (!el || !h) return fecharCal();
+            const sel = h.value, hoje = today(), y = dpMes.getFullYear(), m = dpMes.getMonth(), ini = new Date(y, m, 1 - new Date(y, m, 1).getDay());
+            const anoAtual = new Date().getFullYear(), anos = []; for (let a = Math.min(1950, y); a <= Math.max(anoAtual + 50, y); a++) anos.push(a);
+            let dias = '';
+            for (let i = 0; i < 42; i++) {
+                const d = new Date(ini.getFullYear(), ini.getMonth(), ini.getDate() + i), iso = isoDe(d), dw = d.getDay();
+                const cls = ['dp-d', d.getMonth() !== m ? 'fora' : '', dw === 0 || dw === 6 ? 'fds' : '', iso === hoje ? 'hoje' : '', iso === sel ? 'sel' : ''].filter(Boolean).join(' ');
+                dias += `<button type="button" class="${cls}" data-iso="${iso}">${d.getDate()}</button>`;
+            }
+            const nomeMes = n => n[0].toUpperCase() + n.slice(1);
+            el.innerHTML = `<div class="dp-h"><button type="button" class="dp-nav" data-nav="-1" aria-label="Mês anterior">${ICO_ESQ}</button>
+                ${listaSel('m', 'Mês', nomeMes(MESES[m]), MESES.map((n, i) => [i, nomeMes(n)]), m)}${listaSel('a', 'Ano', y, anos.map(a => [a, a]), y)}
+                <button type="button" class="dp-nav" data-nav="1" aria-label="Próximo mês">${ICO_DIR}</button></div>
+                <div class="dp-g">${['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(w => `<div class="dp-w">${w}</div>`).join('')}${dias}</div>
+                <div class="dp-f"><button type="button" data-limpar ${h.hasAttribute('data-obrig') ? 'style="visibility:hidden"' : ''}>Limpar</button><button type="button" data-hoje>Hoje</button></div>`;
+            el.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => { dpMes = new Date(y, m + +b.dataset.nav, 1); dpLista = null; desenharCal(); });
+            el.querySelectorAll('.dp-selb').forEach(b => b.onclick = e => { e.stopPropagation(); const k = b.parentNode.dataset.sel; dpLista = dpLista === k ? null : k; desenharCal(); });
+            el.querySelectorAll('.dp-list button').forEach(b => b.onclick = e => { e.stopPropagation(); const k = b.closest('.dp-sel').dataset.sel, v = +b.dataset.v; dpMes = k === 'm' ? new Date(y, v, 1) : new Date(v, m, 1); dpLista = null; desenharCal(); });
+            el.onclick = e => { if (dpLista && !e.target.closest('.dp-sel')) { dpLista = null; desenharCal(); } };
+            el.querySelectorAll('.dp-d').forEach(b => b.onclick = () => escolherData(b.dataset.iso));
+            el.querySelector('[data-hoje]').onclick = () => escolherData(hoje);
+            el.querySelector('[data-limpar]').onclick = () => escolherData('');
+            const ls = el.querySelector('.dp-list'); if (ls) { const sb2 = ls.querySelector('.sel'); if (sb2) ls.scrollTop = sb2.offsetTop - ls.clientHeight / 2 + sb2.offsetHeight / 2; }
+        }
+        function escolherData(iso) { const h = document.getElementById(dpAlvo); if (h) h.value = iso; fecharCal(); syncDatas(); }
+        /* clique/toque fora do calendário, rolagem da página ou mudança de tamanho fecham o calendário */
+        document.addEventListener('pointerdown', e => { if (dpAlvo && !e.target.closest('#dp') && !e.target.closest('.dp-btn')) fecharCal(); }, true);
+        document.addEventListener('scroll', e => { if (dpAlvo && innerWidth >= 768 && !(e.target.closest && e.target.closest('#dp'))) fecharCal(); }, true);
+        window.addEventListener('resize', () => { if (dpAlvo) { const b = document.querySelector(`.dp-btn[data-for="${dpAlvo}"]`); if (b) posicionarCal(b); } });
+
+        /* ---------- backup do banco (Supabase) ---------- */
+        async function backupBanco(btn) {
+            if (btn.disabled) return; btn.disabled = true;
+            try {
+                const tabelas = ['transactions', 'suppliers', 'maintenance', 'perfis', 'audit_logs'], dados = {};
+                for (const t of tabelas) dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : 'id'));
+                const arq = { sistema: 'Blue Village Residence', exportadoEm: new Date().toISOString(), exportadoPor: currentUserLoggedIn.username, observacao: 'As senhas não fazem parte do backup.', tabelas: dados };
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(arq, null, 2)], { type: 'application/json' }));
+                a.download = `bluevillage-backup-${today()}.json`; document.body.appendChild(a); a.click();
+                setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+                log('BACKUP', `Backup do banco gerado por ${currentUserLoggedIn.name}`);
+                showToast('Backup gerado com sucesso!');
+            } catch (err) { console.error(err); showToast(errMsg(err), true); }
+            finally { btn.disabled = false; }
+        }
+
+        /* ---------- zerar sistema (pede a senha do usuário admin, conferida no banco) ---------- */
+        async function abrirZerar() {
+            if (!(await confirmBox('Deseja realmente zerar o sistema? Todos os dados e usuários serão apagados (só o admin permanece).', 'Continuar'))) return;
+            openModal('modal-zerar');
+            setTimeout(() => document.getElementById('zerar-senha').focus(), 50);
+        }
+        async function zerarSistema(e) {
+            e.preventDefault();
+            const form = e.target, btn = form.querySelector('button[type=submit]'); if (btn.disabled) return;
+            btn.disabled = true; btn.textContent = 'Zerando...';
+            try {
+                await q(sb.rpc('zerar_sistema', { senha: document.getElementById('zerar-senha').value }));
+                closeModal('modal-zerar');
+                await sb.auth.signOut();   // volta direto para o login
+            } catch (err) {
+                console.error(err);
+                showToast(/senha incorreta/i.test(err.message || '') ? 'Senha do administrador incorreta. Nada foi apagado.' : errMsg(err), true);
+                document.getElementById('zerar-senha').value = ''; document.getElementById('zerar-senha').focus();
+            } finally { btn.disabled = false; btn.textContent = 'Zerar sistema'; }
+        }
+
         /* fecha janelas com Esc */
         document.addEventListener('keydown', e => {
             if (e.key !== 'Escape') return;
+            if (dpAlvo) { if (dpLista) { dpLista = null; desenharCal(); } else fecharCal(); return; }
             if (!document.getElementById('modal-confirm').classList.contains('hidden')) { document.getElementById('confirm-no').click(); return; }
             document.querySelectorAll('[id^="modal-"]:not(.hidden)').forEach(m => m.classList.add('hidden'));
             toggleMenu(false);
