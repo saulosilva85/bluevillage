@@ -27,10 +27,12 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 
 ### Financeiro
 - Movimentações de **Entrada** e **Saída (Despesa)**, com descrição, categoria, **conta**, torre (ou Condomínio Geral), valor e data.
+- **Torre / Setor:** Condomínio Geral, Torre Jurerê, Torre Gunga, Torre Itacaré, Salão de Festa, Academia, Campinho e Bicicletário.
 - **Contas:** Conta Principal, Fundo de Reserva e Salão de Festa. Uma entrada soma e uma saída subtrai do card da conta escolhida no Dashboard.
 - Clique na linha para ver os detalhes (quem lançou e quando). Botões para **editar** e **excluir**.
 
 ### Manutenção & Torres
+- Locais: Torre Jurerê, Torre Gunga, Torre Itacaré, Salão de Festa, Academia, Campinho, Bicicletário e Condomínio Geral (também no filtro de locais).
 - Chamados por torre com item/equipamento, prioridade (Baixa, Média, Alta), status (Pendente, Em Andamento, Concluído), previsão e observações.
 - **Pesquisa** por item ou observação (botão *Pesquisar* ou tecla Enter) e filtros por torre e prioridade.
 - Cartões com paginação (6 por página), detalhes, edição e exclusão.
