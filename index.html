@@ -1206,6 +1206,8 @@
             if (carregando) return carregando;
             carregando = (async () => {
                 try {
+                    /* orçamentos em paralelo; se a tabela ainda não existir, o resto do sistema continua funcionando */
+                    const pQuotes = sb.from('quotes').select('*').order('id', { ascending: false }).then(r => r, e => ({ error: e }));
                     const [fin, sup, users, maint, logs] = await Promise.all([
                         q(sb.from('transactions').select('*').order('date', { ascending: false }).order('id', { ascending: false })),
                         q(sb.from('suppliers').select('*').order('name')),
@@ -1213,6 +1215,7 @@
                         q(sb.from('maintenance').select('*').order('id', { ascending: false })),
                         q(sb.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(50))
                     ]);
+                    const resQuotes = await pQuotes;
                     globalTransactions = fin.map(f => ({ ...f, amount: Number(f.amount) || 0 }));
                     globalSuppliers = sup.map(s => ({ id: s.id, name: s.name, service: s.service, contactName: s.contact_name, contactPhone: s.contact_phone, contractStatus: s.contract_status, monthlyValue: Number(s.monthly_value) || 0, expiryDate: s.expiry_date, contractLink: s.contract_link }));
                     globalUsers = users;
@@ -1222,7 +1225,7 @@
                     mostrarSalario();
                     globalMaintenance = maint.map(m => ({ ...m, dueDate: m.due_date }));
                     if (!users.some(u => u.id === sessionUid)) { showToast('Seu acesso foi removido.', true); encerrarSessao(); return; }
-                    await carregarCotacoes();
+                    carregarCotacoes(resQuotes);
                     renderAll(logs);
                 } catch (err) { console.error(err); showToast(errMsg(err), true); }
                 finally { carregando = null; }
@@ -1782,9 +1785,9 @@
         const travadaQ = c => c && (c.status === 'Aprovado' || c.status === 'Cancelado');
         const orcValidos = c => (c.orcamentos || []).filter(o => o && o.empresa && Number(o.valor) > 0);
         const menorOrc = c => { const v = orcValidos(c); return v.length ? v.reduce((a, b) => Number(b.valor) < Number(a.valor) ? b : a) : null; };
-        async function carregarCotacoes() {
+        function carregarCotacoes(res) {
             try {
-                const r = await q(sb.from('quotes').select('*').order('id', { ascending: false }));
+                if (res.error) throw res.error; const r = res.data || [];
                 globalQuotes = r.map(c => ({ ...c, orcamentos: Array.isArray(c.orcamentos) ? c.orcamentos : [] })); quotesOk = true;
             } catch (e) { console.warn('quotes', e); globalQuotes = []; quotesOk = false; }
             const fl = document.getElementById('lista-fornecedores'); if (fl) fl.innerHTML = globalSuppliers.map(s2 => `<option value="${esc(s2.name)}">`).join('');
