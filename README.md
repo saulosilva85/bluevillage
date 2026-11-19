@@ -34,6 +34,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - Chamados por torre com item/equipamento, prioridade (Baixa, Média, Alta), status (Pendente, Em Andamento, Concluído), previsão e observações.
 - **Pesquisa** por item ou observação (botão *Pesquisar* ou tecla Enter) e filtros por torre e prioridade.
 - Cartões com paginação (6 por página), detalhes, edição e exclusão.
+- Ao salvar um chamado como **Concluído**, o sistema pede confirmação. Depois disso o status fica **verde com cadeado** e o chamado **não pode mais ser editado nem excluído** (a trava também está no banco). Só o *Zerar sistema* apaga chamados concluídos.
 
 ### Fornecedores & Contratos
 - Empresa, categoria (lista ou categoria nova), responsável, telefone, valor mensal, vencimento e **link do contrato** (PDF/Drive).
