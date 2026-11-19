@@ -78,11 +78,22 @@
 
         /* celular */
         #backdrop{display:none}
+        /* janelas: rolagem própria (não rola a página por trás) */
+        [id^="modal-"] > div{max-height:92vh;max-height:92dvh;overflow-y:auto;overscroll-behavior:contain}
+        body.travado{overflow:hidden}
+        [onclick]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+        @media(hover:none){[onclick]:active{opacity:.85}}
         @media(max-width:767px){
           #sidebar{position:fixed;top:0;bottom:0;left:0;z-index:45;width:min(280px,85vw);background:#1e293b;transform:translateX(-100%);transition:transform .2s;overflow-y:auto;padding-top:20px}
           #sidebar.open{transform:none}
           #backdrop.show{display:block;position:fixed;inset:0;z-index:44;background:rgba(2,6,23,.6)}
-          #app-screen input,#app-screen select,#app-screen textarea,.modal-campos input,.modal-campos select,.modal-campos textarea,.dp-btn{font-size:16px} /* evita zoom automático no iPhone */
+          input,select,textarea,.dp-btn{font-size:16px!important} /* evita zoom automático no iPhone */
+          /* alvos de toque com pelo menos 40px */
+          #app-screen button,[id^="modal-"] button,#app-screen select,[id^="modal-"] select,#app-screen input:not([type=hidden]),[id^="modal-"] input:not([type=hidden]){min-height:42px}
+          #app-screen td button,#maintenance-cards-container button,#maint-pagination-buttons button{min-width:42px;min-height:42px;font-size:14px}
+          #maintenance-cards-container .border-t{row-gap:10px}
+          header button{min-width:42px}
+          .pw-eye{min-width:42px!important;width:42px!important;right:2px!important}
           #dp{left:50%!important;top:50%!important;transform:translate(-50%,-50%);width:min(340px,94vw)}
           #dp .dp-d{height:42px;font-size:16px}#dp .dp-nav{width:42px;height:42px}#dp .dp-selb,#dp .dp-list button{height:42px;font-size:16px}#dp .dp-list{max-height:300px}
           #dp-bg.show{display:block}
@@ -236,9 +247,12 @@
 
                 <!-- FINANCEIRO -->
                 <div id="tab-finance" class="hidden space-y-6">
-                    <div class="flex justify-between items-center gap-3">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                         <h3 class="text-xl font-bold">Controle Financeiro</h3>
-                        <button onclick="openModal('modal-finance')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium">Nova Movimentação</button>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="exportarFinanceiroPDF(this)" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-file-pdf mr-1 text-rose-400"></i> Exportar PDF</button>
+                            <button onclick="openModal('modal-finance')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium">Nova Movimentação</button>
+                        </div>
                     </div>
                     <div class="bg-slate-800 border border-slate-700 rounded-xl overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -266,7 +280,10 @@
                             <h3 class="text-xl font-bold">Manutenção Predial & Chamados (Jurerê, Gunga, Itacaré)</h3>
                             <p class="text-xs text-slate-400 mt-1">Gerencie, filtre, navegue, edite e exclua os chamados abertos.</p>
                         </div>
-                        <button onclick="openModal('modal-maintenance')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i> Registrar Manutenção</button>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="exportarManutencaoPDF(this)" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-file-pdf mr-1 text-rose-400"></i> Exportar PDF</button>
+                            <button onclick="openModal('modal-maintenance')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i> Registrar Manutenção</button>
+                        </div>
                     </div>
 
                     <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -279,14 +296,14 @@
                                 <i class="fa-solid fa-magnifying-glass mr-1"></i> Pesquisar
                             </button>
                         </div>
-                        <div class="flex items-center gap-3 w-full md:w-auto">
-                            <select id="maint-filter-tower" onchange="filterMaintenance()" class="flex-1 md:flex-none bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-3 w-full md:w-auto">
+                            <select id="maint-filter-tower" onchange="filterMaintenance()" class="flex-1 min-w-0 md:flex-none bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
                                 <option value="TODAS">Todas as Torres</option>
                                 <option value="Torre Jurerê">Torre Jurerê</option>
                                 <option value="Torre Gunga">Torre Gunga</option>
                                 <option value="Torre Itacaré">Torre Itacaré</option>
                             </select>
-                            <select id="maint-filter-priority" onchange="filterMaintenance()" class="flex-1 md:flex-none bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                            <select id="maint-filter-priority" onchange="filterMaintenance()" class="flex-1 min-w-0 md:flex-none bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
                                 <option value="TODAS">Todas as Prioridades</option>
                                 <option value="Alta">Alta</option>
                                 <option value="Média">Média</option>
@@ -310,8 +327,8 @@
                             <h3 class="text-xl font-bold">Gestão de Fornecedores e Contratos</h3>
                             <p class="text-xs text-slate-400 mt-1">Filtre por categoria e gerencie contatos e contratos em anexo.</p>
                         </div>
-                        <div class="flex items-center gap-3 w-full md:w-auto">
-                            <select id="filter-supplier-category" onchange="filterSuppliers()" class="flex-1 md:flex-none bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                            <select id="filter-supplier-category" onchange="filterSuppliers()" class="flex-1 min-w-0 md:flex-none bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
                                 <option value="TODAS">Todas as Categorias</option>
                                 <option value="Elétrica">Elétrica</option>
                                 <option value="Jardinagem">Jardinagem</option>
@@ -321,6 +338,7 @@
                                 <option value="Elevadores">Elevadores</option>
                                 <option value="Academia">Academia</option>
                             </select>
+                            <button onclick="exportarFornecedoresPDF(this)" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-file-pdf mr-1 text-rose-400"></i> Exportar PDF</button>
                             <button onclick="openModal('modal-supplier')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i> Novo Fornecedor</button>
                         </div>
                     </div>
@@ -496,13 +514,15 @@
                         <option value="Salão de Festa">Salão de Festa</option>
                     </select>
                 </div>
-                <label class="campo-label" for="fin-tower" style="margin-bottom:-12px">Torre / Setor</label>
+                <div>
+                <label class="campo-label" for="fin-tower">Torre / Setor</label>
                 <select id="fin-tower" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
                     <option value="Geral">Condomínio Geral</option>
                     <option value="Torre Jurerê">Torre Jurerê</option>
                     <option value="Torre Gunga">Torre Gunga</option>
                     <option value="Torre Itacaré">Torre Itacaré</option>
                 </select>
+                </div>
                 <select id="fin-type" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
                     <option value="entrada">Entrada</option>
                     <option value="saida">Saída (Despesa)</option>
@@ -1121,16 +1141,22 @@
             if (event.key === 'Enter') { event.preventDefault(); filterMaintenance(); }
         }
 
-        function renderMaintenance() {
+        function manutencaoFiltrada() {
             const searchVal = document.getElementById('maint-search-input').value.toLowerCase();
             const towerVal = document.getElementById('maint-filter-tower').value;
             const priorityVal = document.getElementById('maint-filter-priority').value;
-            const filtered = globalMaintenance.filter(m => {
+            return globalMaintenance.filter(m => {
                 const matchSearch = !searchVal || (m.item && m.item.toLowerCase().includes(searchVal)) || (m.notes && m.notes.toLowerCase().includes(searchVal));
                 const matchTower = towerVal === 'TODAS' || m.tower === towerVal;
                 const matchPriority = priorityVal === 'TODAS' || m.priority === priorityVal;
                 return matchSearch && matchTower && matchPriority;
             });
+        }
+        function renderMaintenance() {
+            const searchVal = document.getElementById('maint-search-input').value.toLowerCase();
+            const towerVal = document.getElementById('maint-filter-tower').value;
+            const priorityVal = document.getElementById('maint-filter-priority').value;
+            const filtered = manutencaoFiltrada();
             const totalItems = filtered.length;
             const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
             if (currentMaintenancePage > totalPages) currentMaintenancePage = totalPages;
@@ -1195,7 +1221,11 @@
 
         function filterSuppliers() {
             const cat = document.getElementById('filter-supplier-category').value;
-            renderSuppliers(cat === 'TODAS' ? globalSuppliers : globalSuppliers.filter(s => s.service === cat));
+            renderSuppliers(fornecedoresFiltrados());
+        }
+        function fornecedoresFiltrados() {
+            const cat = document.getElementById('filter-supplier-category').value;
+            return cat === 'TODAS' ? globalSuppliers : globalSuppliers.filter(s => s.service === cat);
         }
 
         /* ---------- gravações ---------- */
@@ -1410,6 +1440,157 @@
         document.addEventListener('scroll', e => { if (dpAlvo && innerWidth >= 768 && !(e.target.closest && e.target.closest('#dp'))) fecharCal(); }, true);
         window.addEventListener('resize', () => { if (dpAlvo) { const b = document.querySelector(`.dp-btn[data-for="${dpAlvo}"]`); if (b) posicionarCal(b); } });
 
+        /* ---------- exportação para PDF (gerador próprio, funciona sem bibliotecas externas) ---------- */
+        const HELV = '278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584'.split(',').map(Number);
+        const HELVB = '278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584'.split(',').map(Number);
+        const WIN = { '€': 128, '‚': 130, '„': 132, '…': 133, '‘': 145, '’': 146, '“': 147, '”': 148, '•': 149, '–': 150, '—': 151, '→': 0 };
+        function pdfTexto(t) {   /* texto para o PDF (WinAnsi), com escape de ( ) \ */
+            let o = '';
+            for (const ch of String(t ?? '')) {
+                let c = ch.charCodeAt(0);
+                if (ch === '→') { o += '->'; continue; }
+                if (WIN[ch]) c = WIN[ch]; else if (c > 255 || (c < 32 && c !== 9)) c = 63;
+                const x = String.fromCharCode(c);
+                o += (x === '(' || x === ')' || x === '\\') ? '\\' + x : x;
+            }
+            return o;
+        }
+        function larguraTexto(t, tam, negrito) {
+            const tab = negrito ? HELVB : HELV; let w = 0;
+            for (const ch of String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '')) { const c = ch.charCodeAt(0); w += (c >= 32 && c <= 126) ? tab[c - 32] : 556; }
+            return w * tam / 1000;
+        }
+        function quebrarLinhas(t, largura, tam, negrito) {
+            const linhas = [];
+            String(t ?? '').split(/\r?\n/).forEach(par => {
+                let atual = '';
+                par.split(/\s+/).filter(Boolean).forEach(pal => {
+                    while (larguraTexto(pal, tam, negrito) > largura) {   /* palavra maior que a coluna */
+                        let k = pal.length; while (k > 1 && larguraTexto(pal.slice(0, k), tam, negrito) > largura) k--;
+                        if (atual) { linhas.push(atual); atual = ''; }
+                        linhas.push(pal.slice(0, k)); pal = pal.slice(k);
+                    }
+                    const tent = atual ? atual + ' ' + pal : pal;
+                    if (larguraTexto(tent, tam, negrito) <= largura) atual = tent; else { if (atual) linhas.push(atual); atual = pal; }
+                });
+                linhas.push(atual);
+            });
+            return linhas.length ? linhas : [''];
+        }
+        /* gera um PDF A4 deitado com título, resumo e tabela; repete o cabeçalho a cada página */
+        function gerarPDF({ titulo, subtitulo, resumo = [], colunas, linhas }) {
+            const W = 842, H = 595, M = 36, larguraUtil = W - 2 * M, TAM = 8.5, LH = 11, PAD = 5;
+            const totalPeso = colunas.reduce((s, c) => s + c.w, 0);
+            const cols = []; let x = M; colunas.forEach(c => { const w = larguraUtil * c.w / totalPeso; cols.push({ ...c, x, w }); x += w; });
+            const paginas = []; let ops = [], y = 0;
+            const cor = (r, g, b) => `${(r / 255).toFixed(3)} ${(g / 255).toFixed(3)} ${(b / 255).toFixed(3)}`;
+            const txt = (t, tx, ty, tam, negrito, c) => ops.push(`BT /${negrito ? 'F2' : 'F1'} ${tam} Tf ${c} rg ${tx.toFixed(2)} ${ty.toFixed(2)} Td (${pdfTexto(t)}) Tj ET`);
+            const ret = (rx, ry, rw, rh, c) => ops.push(`${c} rg ${rx.toFixed(2)} ${ry.toFixed(2)} ${rw.toFixed(2)} ${rh.toFixed(2)} re f`);
+            const cabecalhoTabela = () => {
+                const hl = cols.map(c => quebrarLinhas(c.t, c.w - 2 * PAD, TAM, true)), h = Math.max(...hl.map(l => l.length)) * LH + 2 * PAD;
+                ret(M, y - h, larguraUtil, h, cor(30, 41, 59));
+                cols.forEach((c, i) => hl[i].forEach((l, k) => txt(l, c.align === 'right' ? c.x + c.w - PAD - larguraTexto(l, TAM, true) : c.x + PAD, y - PAD - (k + 1) * LH + 2.5, TAM, true, '1 1 1')));
+                y -= h;
+            };
+            const novaPagina = primeira => {
+                if (ops.length) paginas.push(ops); ops = []; y = H - M;
+                if (primeira) {
+                    txt('Blue Village Residence', M, y - 12, 9, true, cor(37, 99, 235)); y -= 30;
+                    txt(titulo, M, y, 16, true, cor(15, 23, 42)); y -= 16;
+                    if (subtitulo) { txt(subtitulo, M, y, 9, false, cor(100, 116, 139)); y -= 16; }
+                    resumo.forEach(r => { txt(r, M, y, 9.5, false, cor(30, 41, 59)); y -= 13; });
+                    y -= 6;
+                } else { txt(titulo + ' (continuação)', M, y - 10, 10, true, cor(100, 116, 139)); y -= 22; }
+                cabecalhoTabela();
+            };
+            novaPagina(true);
+            if (!linhas.length) { y -= 18; txt('Nenhum registro encontrado.', M + PAD, y, 9.5, false, cor(100, 116, 139)); }
+            linhas.forEach((lin, idx) => {
+                const ql = cols.map((c, i) => quebrarLinhas(lin[i], c.w - 2 * PAD, TAM, false)), h = Math.max(...ql.map(l => l.length)) * LH + 2 * PAD;
+                if (y - h < M + 20) novaPagina(false);
+                if (idx % 2) ret(M, y - h, larguraUtil, h, cor(241, 245, 249));
+                cols.forEach((c, i) => ql[i].forEach((l, k) => txt(l, c.align === 'right' ? c.x + c.w - PAD - larguraTexto(l, TAM, false) : c.x + PAD, y - PAD - (k + 1) * LH + 2.5, TAM, false, cor(15, 23, 42))));
+                ops.push(`${cor(226, 232, 240)} RG 0.5 w ${M} ${(y - h).toFixed(2)} m ${M + larguraUtil} ${(y - h).toFixed(2)} l S`);
+                y -= h;
+            });
+            paginas.push(ops);
+            /* rodapé com número da página */
+            const gerado = `Gerado em ${new Date().toLocaleString('pt-BR')} por ${currentUserLoggedIn ? currentUserLoggedIn.name : ''}`;
+            paginas.forEach((p, i) => { ops = p; txt(gerado, M, 20, 7.5, false, cor(100, 116, 139)); const pg = `Página ${i + 1} de ${paginas.length}`; txt(pg, W - M - larguraTexto(pg, 7.5), 20, 7.5, false, cor(100, 116, 139)); });
+            /* monta o arquivo PDF */
+            const objs = [];
+            objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+            objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+            objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+            const kids = [];
+            paginas.forEach((p, i) => {
+                const conteudo = p.join('\n'), nCont = 5 + i * 2, nPag = 6 + i * 2;
+                objs[nCont] = `<< /Length ${conteudo.length} >>\nstream\n${conteudo}\nendstream`;
+                objs[nPag] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${nCont} 0 R >>`;
+                kids.push(`${nPag} 0 R`);
+            });
+            objs[2] = `<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${kids.length} >>`;
+            objs.push(`<< /Title (${pdfTexto(titulo)}) /Producer (Blue Village) >>`); const nInfo = objs.length - 1;
+            let pdf = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; const offs = [];
+            for (let i = 1; i < objs.length; i++) { offs[i] = pdf.length; pdf += `${i} 0 obj\n${objs[i]}\nendobj\n`; }
+            const xref = pdf.length;
+            pdf += `xref\n0 ${objs.length}\n0000000000 65535 f \n` + offs.slice(1).map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('');
+            pdf += `trailer\n<< /Size ${objs.length} /Root 1 0 R /Info ${nInfo} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+            const bytes = new Uint8Array(pdf.length); for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 255;
+            return new Blob([bytes], { type: 'application/pdf' });
+        }
+        function baixarPDF(blob, nome) {
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome; document.body.appendChild(a); a.click();
+            setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+        }
+        async function exportarPDF(btn, fn) {
+            if (btn && btn.disabled) return; if (btn) btn.disabled = true;
+            try { await loadAllData(); const { blob, nome, desc } = fn(); baixarPDF(blob, nome); log('EXPORTAR_PDF', `${desc} exportado por ${currentUserLoggedIn.name}`); showToast('PDF gerado com sucesso!'); }
+            catch (err) { console.error(err); showToast(errMsg(err), true); }
+            finally { if (btn) btn.disabled = false; }
+        }
+        function exportarFinanceiroPDF(btn) {
+            exportarPDF(btn, () => {
+                const s = { 'Conta Principal': 0, 'Fundo de Reserva': 0, 'Salão de Festa': 0 }; let ent = 0, sai = 0;
+                globalTransactions.forEach(f => { const c = f.account || 'Conta Principal'; if (!(c in s)) s[c] = 0; if (f.type === 'entrada') { s[c] += f.amount; ent += f.amount; } else { s[c] -= f.amount; sai += f.amount; } });
+                const blob = gerarPDF({
+                    titulo: 'Relatório Financeiro', subtitulo: `${globalTransactions.length} movimentação(ões)`,
+                    resumo: [`Conta Principal: ${brl(s['Conta Principal'])}   |   Fundo de Reserva: ${brl(s['Fundo de Reserva'])}   |   Salão de Festa: ${brl(s['Salão de Festa'])}`, `Total de entradas: ${brl(ent)}   |   Total de saídas: ${brl(sai)}`],
+                    colunas: [{ t: 'Data', w: 8 }, { t: 'Descrição', w: 22 }, { t: 'Categoria', w: 13 }, { t: 'Conta', w: 13 }, { t: 'Torre / Setor', w: 12 }, { t: 'Tipo', w: 8 }, { t: 'Valor', w: 11, align: 'right' }, { t: 'Lançado por', w: 13 }],
+                    linhas: globalTransactions.map(f => [fmtDate(f.date), f.description, f.category, f.account || 'Conta Principal', f.tower || 'Geral', f.type === 'entrada' ? 'Entrada' : 'Saída', brl(f.amount), f.created_by || '-'])
+                });
+                return { blob, nome: `financeiro-${today()}.pdf`, desc: 'Relatório financeiro' };
+            });
+        }
+        function exportarManutencaoPDF(btn) {
+            exportarPDF(btn, () => {
+                const lista = manutencaoFiltrada(), filtros = [];
+                const busca = document.getElementById('maint-search-input').value.trim(), torre = document.getElementById('maint-filter-tower').value, prio = document.getElementById('maint-filter-priority').value;
+                if (busca) filtros.push(`busca "${busca}"`); if (torre !== 'TODAS') filtros.push(torre); if (prio !== 'TODAS') filtros.push(`prioridade ${prio}`);
+                const cont = st => lista.filter(m => (m.status || 'Pendente') === st).length;
+                const blob = gerarPDF({
+                    titulo: 'Relatório de Manutenção & Chamados', subtitulo: `${lista.length} chamado(s)` + (filtros.length ? ` — filtro: ${filtros.join(', ')}` : ' — todos os chamados'),
+                    resumo: [`Pendentes: ${cont('Pendente')}   |   Em andamento: ${cont('Em Andamento')}   |   Concluídos: ${cont('Concluído')}`],
+                    colunas: [{ t: 'Previsão', w: 8 }, { t: 'Torre / Local', w: 11 }, { t: 'Item / Equipamento', w: 17 }, { t: 'Prioridade', w: 8 }, { t: 'Status', w: 10 }, { t: 'Observações', w: 28 }, { t: 'Registrado por', w: 12 }],
+                    linhas: lista.map(m => [fmtDate(m.dueDate), m.tower, m.item, m.priority, m.status || 'Pendente', m.notes || '-', `${m.created_by || '-'}\n${fmtDateTime(m.created_at)}`])
+                });
+                return { blob, nome: `manutencao-${today()}.pdf`, desc: 'Relatório de manutenção' };
+            });
+        }
+        function exportarFornecedoresPDF(btn) {
+            exportarPDF(btn, () => {
+                const lista = fornecedoresFiltrados(), cat = document.getElementById('filter-supplier-category').value;
+                const total = lista.reduce((a, s2) => a + (s2.monthlyValue || 0), 0);
+                const blob = gerarPDF({
+                    titulo: 'Relatório de Fornecedores & Contratos', subtitulo: `${lista.length} fornecedor(es)` + (cat !== 'TODAS' ? ` — categoria: ${cat}` : ' — todas as categorias'),
+                    resumo: [`Total mensal dos contratos: ${brl(total)}`],
+                    colunas: [{ t: 'Empresa', w: 16 }, { t: 'Categoria', w: 11 }, { t: 'Responsável', w: 12 }, { t: 'Telefone', w: 11 }, { t: 'Valor Mensal', w: 10, align: 'right' }, { t: 'Vencimento', w: 9 }, { t: 'Status', w: 7 }, { t: 'Link do Contrato', w: 24 }],
+                    linhas: lista.map(s2 => [s2.name, s2.service, s2.contactName || '-', s2.contactPhone || '-', brl(s2.monthlyValue), fmtDate(s2.expiryDate), s2.contractStatus || 'Ativo', s2.contractLink || 'Não anexo'])
+                });
+                return { blob, nome: `fornecedores-${today()}.pdf`, desc: 'Relatório de fornecedores' };
+            });
+        }
+
         /* ---------- backup do banco (Supabase) ---------- */
         async function backupBanco(btn) {
             if (btn.disabled) return; btn.disabled = true;
@@ -1446,6 +1627,10 @@
                 document.getElementById('zerar-senha').value = ''; document.getElementById('zerar-senha').focus();
             } finally { btn.disabled = false; btn.textContent = 'Zerar sistema'; }
         }
+
+        /* trava a rolagem da página enquanto uma janela estiver aberta */
+        new MutationObserver(() => document.body.classList.toggle('travado', !!document.querySelector('[id^="modal-"]:not(.hidden)') || document.getElementById('sidebar').classList.contains('open')))
+            .observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
 
         /* fecha janelas com Esc */
         document.addEventListener('keydown', e => {

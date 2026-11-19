@@ -45,6 +45,14 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - Exclusão de usuários. O `admin` (Principal) e o próprio usuário logado não podem ser excluídos.
 - **Alterar Minha Senha** (pede a senha atual).
 
+### Exportar PDF
+- **Financeiro**, **Manutenção & Torres** e **Fornecedores & Contratos** têm o botão **Exportar PDF**.
+- O PDF sai em A4 deitado, com título, resumo, tabela completa, número das páginas e data/hora/usuário que gerou.
+  - **Financeiro:** todas as movimentações, o saldo de cada conta e o total de entradas e de saídas.
+  - **Manutenção:** os chamados conforme a pesquisa e os filtros da tela, com o total por status.
+  - **Fornecedores:** conforme a categoria filtrada, com o total mensal dos contratos.
+- O PDF é gerado no próprio aparelho, sem serviço externo. No celular, é salvo em Downloads/Arquivos.
+
 ### Banco & Logs
 - **Fazer backup do banco:** baixa um arquivo `.json` com todos os dados do Supabase (movimentações, fornecedores, manutenções, usuários e logs). As senhas não entram no backup.
 - **Zerar sistema:** pede confirmação e a **senha do usuário admin** (conferida no banco). Apaga todos os dados e usuários; só o `admin` permanece, com a senha inicial. Depois volta para a tela de login.
@@ -54,6 +62,17 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - Todos os campos de data usam o **calendário do próprio sistema** (formato dd/mm/aaaa), com listas de mês e ano (1950 até 50 anos à frente), botão **Hoje** e destaque para hoje e fins de semana.
 - No celular, abre no centro da tela com botões grandes.
 - Fecha ao escolher a data, ao tocar fora, com Esc, ao fechar a janela ou ao trocar de tela.
+
+---
+
+## 📱 Uso no celular
+
+- Menu pelo botão ☰. Ele fecha ao tocar fora ou ao escolher uma tela.
+- Botões, listas e campos com pelo menos 42px de altura, para o toque.
+- Campos com fonte de 16px, para o iPhone não dar zoom ao digitar.
+- As janelas (cadastros, detalhes, confirmações) têm rolagem própria, e a página de trás fica parada enquanto estão abertas.
+- Filtros empilhados e tabelas com rolagem lateral, sem estourar a tela.
+- Confirmações em janela do próprio sistema e proteção contra toque duplo nos botões de salvar.
 
 ---
 
