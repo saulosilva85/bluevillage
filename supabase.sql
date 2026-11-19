@@ -2,128 +2,129 @@
 --  Blue Village Residence — estrutura do banco no Supabase
 --  Cole TODO este arquivo em: Supabase > SQL Editor > New query > Run
 --  Pode ser executado mais de uma vez sem problema.
+--  A senha inicial do admin NÃO fica neste arquivo (veja o README, passo 3.1).
 -- =====================================================================
 
 create extension if not exists pgcrypto with schema extensions;
+
+-- ---------- Remove a estrutura da versão anterior do sistema ----------
+drop table if exists public.lanc   cascade;
+drop table if exists public.manut  cascade;
+drop table if exists public.forn   cascade;
+drop table if exists public.config cascade;
+drop table if exists public.logs   cascade;
+do $$ begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'perfis' and column_name = 'perfil') then
+    drop table public.perfis cascade;
+  end if;
+end $$;
+drop function if exists public.eh_admin() cascade;
+drop function if exists public.bootstrap_admin() cascade;
+drop function if exists public.admin_definir_senha(uuid, text) cascade;
+drop function if exists public.admin_excluir_usuario(uuid) cascade;
+drop function if exists public.admin_remover_orfao(text) cascade;
+drop function if exists public.admin_zerar_banco() cascade;
+drop function if exists public.admin_zerar_banco(text) cascade;
+drop function if exists public.bv_travar_concluida() cascade;
+drop function if exists public.bv_proteger_concluida() cascade;
 
 -- ---------- Tabelas ----------
 create table if not exists public.perfis (
   id        uuid primary key references auth.users(id) on delete cascade,
   usuario   text not null unique,
   nome      text not null,
-  perfil    text not null default 'Operador',
-  ativo     boolean not null default true,
+  funcao    text not null default 'Administrativo',
   criado_em timestamptz not null default now()
 );
 
-create table if not exists public.lanc (
-  id        text primary key,
-  data      date not null,
-  tipo      text not null,
-  categoria text,
-  torre     text default '',
-  descricao text,
-  valor     numeric(14,2) not null default 0,
-  criado_em timestamptz not null default now()
+create table if not exists public.transactions (
+  id          bigint generated always as identity primary key,
+  description text not null,
+  category    text not null,
+  type        text not null check (type in ('entrada', 'saida')),
+  amount      numeric(14,2) not null default 0,
+  date        date not null,
+  tower       text not null default 'Geral',
+  created_by  text,
+  created_at  timestamptz not null default now()
 );
 
-create table if not exists public.manut (
-  id         text primary key,
-  data       date not null,
-  torre      text,
-  tipo       text,
-  prioridade text,
-  titulo     text not null,
-  resp       text default '',
-  custo      numeric(14,2) not null default 0,
-  status     text not null default 'Aberta',
-  criado_em  timestamptz not null default now()
+create table if not exists public.suppliers (
+  id              bigint generated always as identity primary key,
+  name            text not null,
+  service         text not null,
+  contact_name    text,
+  contact_phone   text,
+  contract_status text not null default 'Ativo',
+  monthly_value   numeric(14,2) not null default 0,
+  expiry_date     date,
+  contract_link   text
 );
 
-create table if not exists public.forn (
-  id        text primary key,
-  nome      text not null,
-  doc       text default '',
-  servico   text,
-  contato   text default '',
-  inicio    date,
-  fim       date,
-  valor     numeric(14,2) not null default 0,
-  status    text not null default 'Ativo',
-  criado_em timestamptz not null default now()
+create table if not exists public.maintenance (
+  id         bigint generated always as identity primary key,
+  tower      text not null,
+  item       text not null,
+  status     text not null default 'Pendente',
+  priority   text not null default 'Média',
+  due_date   date,
+  notes      text,
+  created_by text,
+  created_at timestamptz not null default now()
 );
 
-create table if not exists public.config (
-  id      text primary key default 'main',
-  salario numeric(14,2) not null default 1518,
-  mult    numeric(6,2)  not null default 5
+create table if not exists public.audit_logs (
+  id        bigint generated always as identity primary key,
+  action    text not null,
+  details   text,
+  timestamp timestamptz not null default now()
 );
-insert into public.config (id) values ('main') on conflict (id) do nothing;
+create index if not exists audit_logs_ts_idx on public.audit_logs (timestamp desc);
 
-create table if not exists public.logs (
-  id      bigint generated always as identity primary key,
-  ts      timestamptz not null default now(),
-  usuario text,
-  acao    text
-);
-create index if not exists logs_ts_idx on public.logs (ts desc);
+-- Senha inicial do admin: guardada só como hash, numa tabela que o site não consegue ler
+create table if not exists public.bv_privado (chave text primary key, valor text not null);
+alter table public.bv_privado enable row level security;
+revoke all on public.bv_privado from anon, authenticated;
 
--- ---------- Funções de permissão ----------
+-- ---------- Permissão: usuário logado e cadastrado ----------
 create or replace function public.eh_ativo() returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.perfis where id = auth.uid() and ativo);
-$$;
-
-create or replace function public.eh_admin() returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.perfis where id = auth.uid() and ativo and perfil = 'Administrador');
+  select exists (select 1 from public.perfis where id = auth.uid());
 $$;
 
 -- ---------- Segurança por linha (RLS) ----------
-alter table public.perfis enable row level security;
-alter table public.lanc   enable row level security;
-alter table public.manut  enable row level security;
-alter table public.forn   enable row level security;
-alter table public.config enable row level security;
-alter table public.logs   enable row level security;
+alter table public.perfis       enable row level security;
+alter table public.transactions enable row level security;
+alter table public.suppliers    enable row level security;
+alter table public.maintenance  enable row level security;
+alter table public.audit_logs   enable row level security;
 
-drop policy if exists ativos on public.lanc;
-drop policy if exists ativos on public.manut;
-drop policy if exists ativos on public.forn;
-drop policy if exists ativos on public.config;
-create policy ativos on public.lanc   for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
-create policy ativos on public.manut  for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
-create policy ativos on public.forn   for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
-create policy ativos on public.config for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
+drop policy if exists ativos on public.transactions;
+drop policy if exists ativos on public.suppliers;
+drop policy if exists ativos on public.maintenance;
+create policy ativos on public.transactions for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
+create policy ativos on public.suppliers    for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
+create policy ativos on public.maintenance  for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 
-drop policy if exists logs_ler on public.logs;
-drop policy if exists logs_criar on public.logs;
-drop policy if exists logs_apagar on public.logs;
-create policy logs_ler    on public.logs for select to authenticated using (public.eh_ativo());
-create policy logs_criar  on public.logs for insert to authenticated with check (public.eh_ativo());
-create policy logs_apagar on public.logs for delete to authenticated using (public.eh_admin());
+drop policy if exists logs_ler on public.audit_logs;
+drop policy if exists logs_criar on public.audit_logs;
+create policy logs_ler   on public.audit_logs for select to authenticated using (public.eh_ativo());
+create policy logs_criar on public.audit_logs for insert to authenticated with check (public.eh_ativo());
 
 drop policy if exists perfis_ler on public.perfis;
 drop policy if exists perfis_criar on public.perfis;
 drop policy if exists perfis_alterar on public.perfis;
 drop policy if exists perfis_apagar on public.perfis;
-create policy perfis_ler     on public.perfis for select to authenticated using (public.eh_ativo() or id = auth.uid());
-create policy perfis_criar   on public.perfis for insert to authenticated with check (public.eh_admin());
-create policy perfis_alterar on public.perfis for update to authenticated using (public.eh_admin()) with check (public.eh_admin());
-create policy perfis_apagar  on public.perfis for delete to authenticated using (public.eh_admin());
+create policy perfis_ler    on public.perfis for select to authenticated using (public.eh_ativo() or id = auth.uid());
+create policy perfis_criar  on public.perfis for insert to authenticated with check (public.eh_ativo() and usuario <> 'admin');
+create policy perfis_alterar on public.perfis for update to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 
--- ---------- Funções chamadas pelo sistema ----------
--- Indica se ainda não existe nenhum usuário (primeiro acesso)
+-- ---------- Primeiro acesso do admin ----------
 create or replace function public.precisa_bootstrap() returns boolean
 language sql stable security definer set search_path = public as $$
   select not exists (select 1 from public.perfis);
 $$;
-
--- Senha inicial do admin: guardada só como hash, numa tabela que o site não consegue ler.
--- Ela NÃO fica neste arquivo: é cadastrada à parte no SQL Editor (veja o README).
-create table if not exists public.bv_privado (chave text primary key, valor text not null);
-alter table public.bv_privado enable row level security;
-revoke all on public.bv_privado from anon, authenticated;
 
 create or replace function public.senha_inicial_hash() returns text
 language plpgsql stable security definer set search_path = public as $$
@@ -134,7 +135,6 @@ begin
   return h;
 end $$;
 
--- Primeiro acesso: confere a senha digitada com a senha inicial (só funciona enquanto não houver usuários)
 create or replace function public.confere_senha_inicial(senha text) returns boolean
 language plpgsql stable security definer set search_path = public, extensions as $$
 declare h text;
@@ -144,8 +144,7 @@ begin
   return h = extensions.crypt(coalesce(senha, ''), h);
 end $$;
 
--- Primeiro acesso: transforma a conta admin@bluevillage.app no Administrador
-drop function if exists public.bootstrap_admin();
+drop function if exists public.bootstrap_admin(text);
 create or replace function public.bootstrap_admin(senha text) returns void
 language plpgsql security definer set search_path = public, extensions as $$
 begin
@@ -154,105 +153,42 @@ begin
   if auth.uid() is null or (select email from auth.users where id = auth.uid()) <> 'admin@bluevillage.app' then
     raise exception 'Não autorizado';
   end if;
-  insert into public.perfis (id, usuario, nome, perfil, ativo) values (auth.uid(), 'admin', 'Admin', 'Administrador', true);
+  insert into public.perfis (id, usuario, nome, funcao) values (auth.uid(), 'admin', 'Anthony Melo', 'Síndico');
 end $$;
 
--- Administrador redefine a senha de outro usuário
-create or replace function public.admin_definir_senha(alvo uuid, nova text) returns void
-language plpgsql security definer set search_path = public, extensions as $$
-begin
-  if not public.eh_admin() then raise exception 'Não autorizado'; end if;
-  if length(coalesce(nova, '')) < 6 then raise exception 'Senha muito curta'; end if;
-  update auth.users set encrypted_password = extensions.crypt(nova, extensions.gen_salt('bf')), updated_at = now() where id = alvo;
-end $$;
-
--- Administrador exclui um usuário (login + perfil)
-create or replace function public.admin_excluir_usuario(alvo uuid) returns void
+-- ---------- Usuários ----------
+-- Exclui um usuário (login + perfil). O "admin" e o próprio usuário não podem ser excluídos.
+create or replace function public.excluir_usuario(alvo uuid) returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  if not public.eh_admin() then raise exception 'Não autorizado'; end if;
+  if not public.eh_ativo() then raise exception 'Não autorizado'; end if;
   if alvo = auth.uid() then raise exception 'Não é possível excluir o próprio usuário'; end if;
+  if exists (select 1 from public.perfis where id = alvo and usuario = 'admin') then
+    raise exception 'O usuário principal não pode ser excluído';
+  end if;
   delete from auth.users where id = alvo;
 end $$;
 
 -- Remove um login que ficou sem perfil (ex.: cadastro interrompido)
-create or replace function public.admin_remover_orfao(email_alvo text) returns void
+create or replace function public.remover_login_orfao(email_alvo text) returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  if not public.eh_admin() then raise exception 'Não autorizado'; end if;
+  if not public.eh_ativo() then raise exception 'Não autorizado'; end if;
   delete from auth.users u where u.email = lower(email_alvo)
     and not exists (select 1 from public.perfis p where p.id = u.id);
 end $$;
 
-revoke execute on function public.bootstrap_admin(text)              from public, anon;
-revoke execute on function public.senha_inicial_hash()               from public, anon, authenticated;
-revoke execute on function public.admin_definir_senha(uuid, text)    from public, anon;
-revoke execute on function public.admin_excluir_usuario(uuid)        from public, anon;
-revoke execute on function public.admin_remover_orfao(text)          from public, anon;
-grant  execute on function public.precisa_bootstrap()                to anon, authenticated;
-grant  execute on function public.bootstrap_admin(text)              to authenticated;
-grant  execute on function public.confere_senha_inicial(text)        to anon, authenticated;
-grant  execute on function public.admin_definir_senha(uuid, text)    to authenticated;
-grant  execute on function public.admin_excluir_usuario(uuid)        to authenticated;
-grant  execute on function public.admin_remover_orfao(text)          to authenticated;
-
--- ---------- Manutenção concluída não pode mudar de status ----------
-create or replace function public.bv_travar_concluida() returns trigger
-language plpgsql as $$
-begin
-  if old.status = 'Concluída' and new.status is distinct from old.status then
-    raise exception 'Registro concluído: o status não pode mais ser alterado';
-  end if;
-  return new;
-end $$;
-drop trigger if exists bv_travar_concluida on public.manut;
-create trigger bv_travar_concluida before update on public.manut
-  for each row execute function public.bv_travar_concluida();
-
--- ---------- Manutenção concluída não pode ser excluída ----------
--- (exceto pela opção "Zerar banco" do Administrador)
-create or replace function public.bv_proteger_concluida() returns trigger
-language plpgsql as $$
-begin
-  if old.status = 'Concluída' and coalesce(current_setting('bv.zerar', true), '') <> 'sim' then
-    raise exception 'Registro concluído não pode ser excluído';
-  end if;
-  return old;
-end $$;
-drop trigger if exists bv_proteger_concluida on public.manut;
-create trigger bv_proteger_concluida before delete on public.manut
-  for each row execute function public.bv_proteger_concluida();
-
--- Zerar banco (somente Administrador, confirmando a própria senha):
--- apaga lançamentos, manutenções, contratos, logs e todos os usuários, exceto o "admin" (que volta para a senha padrão)
-drop function if exists public.admin_zerar_banco();
-create or replace function public.admin_zerar_banco(senha text) returns void
-language plpgsql security definer set search_path = public, extensions as $$
-begin
-  if not public.eh_admin() then raise exception 'Não autorizado'; end if;
-  if not exists (select 1 from auth.users u where u.id = auth.uid()
-                 and u.encrypted_password = extensions.crypt(coalesce(senha, ''), u.encrypted_password)) then
-    raise exception 'Senha incorreta';
-  end if;
-  perform set_config('bv.zerar', 'sim', true);
-  -- "where true" é exigido pela proteção do Supabase contra DELETE sem WHERE
-  delete from public.lanc  where true;
-  delete from public.manut where true;
-  delete from public.forn  where true;
-  delete from public.logs  where true;
-  -- usuários: só o "admin" permanece, ativo e com a senha inicial
-  delete from auth.users where email <> 'admin@bluevillage.app';
-  update auth.users set encrypted_password = public.senha_inicial_hash(), updated_at = now()
-    where email = 'admin@bluevillage.app';
-  update public.perfis set nome = 'Admin', perfil = 'Administrador', ativo = true where usuario = 'admin';
-  insert into public.logs (usuario, acao) values ((select usuario from public.perfis where id = auth.uid()), 'Banco zerado');
-end $$;
-revoke execute on function public.admin_zerar_banco(text) from public, anon;
-grant  execute on function public.admin_zerar_banco(text) to authenticated;
+revoke execute on function public.senha_inicial_hash()          from public, anon, authenticated;
+revoke execute on function public.bootstrap_admin(text)         from public, anon;
+revoke execute on function public.excluir_usuario(uuid)         from public, anon;
+revoke execute on function public.remover_login_orfao(text)     from public, anon;
+grant  execute on function public.precisa_bootstrap()           to anon, authenticated;
+grant  execute on function public.confere_senha_inicial(text)   to anon, authenticated;
+grant  execute on function public.bootstrap_admin(text)         to authenticated;
+grant  execute on function public.excluir_usuario(uuid)         to authenticated;
+grant  execute on function public.remover_login_orfao(text)     to authenticated;
 
 -- ---------- Confirmação automática dos logins internos ----------
--- Os logins do sistema usam e-mails internos (@bluevillage.app) que não recebem mensagens.
--- Esta regra marca esses logins como confirmados no momento em que são criados.
 create or replace function public.bv_autoconfirmar() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
@@ -264,14 +200,12 @@ end $$;
 drop trigger if exists bv_autoconfirmar on auth.users;
 create trigger bv_autoconfirmar before insert on auth.users
   for each row execute function public.bv_autoconfirmar();
-update auth.users set email_confirmed_at = now()
-  where email like '%@bluevillage.app' and email_confirmed_at is null;
 
 -- ---------- Tempo real (atualização automática entre aparelhos) ----------
 do $$
 declare t text;
 begin
-  foreach t in array array['perfis','lanc','manut','forn','config','logs'] loop
+  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
       execute format('alter publication supabase_realtime add table public.%I', t);
     end if;
