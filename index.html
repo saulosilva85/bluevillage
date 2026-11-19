@@ -163,7 +163,7 @@
                     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
                         <h3 class="text-xl font-bold">Painel Geral & Alerta de Teto de Gastos</h3>
                         <div class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-300 self-start">
-                            Salário Mínimo: <strong class="text-blue-400">R$ 1.518,00</strong> | Teto (5x): <strong class="text-blue-400" id="teto-label">R$ 7.590,00</strong>
+                            Salário Mínimo: <strong class="text-blue-400" id="salario-label">R$ 1.518,00</strong> | Teto (5x): <strong class="text-blue-400" id="teto-label">R$ 7.590,00</strong>
                         </div>
                     </div>
 
@@ -270,6 +270,12 @@
                             </thead>
                             <tbody id="finance-table-body" class="divide-y divide-slate-700 text-sm"></tbody>
                         </table>
+                    </div>
+                    <!-- ajuste discreto do salário mínimo (base do teto de gastos do regimento) -->
+                    <div class="flex justify-end">
+                        <button type="button" onclick="openModal('modal-salario')" class="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 rounded" title="Alterar salário mínimo">
+                            <i class="fa-solid fa-gear mr-1"></i>Salário mínimo: <span id="salario-discreto">R$ 1.518,00</span> · Teto 5x
+                        </button>
                     </div>
                 </div>
 
@@ -469,6 +475,21 @@
         </div>
     </div>
 
+    <div id="modal-salario" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-sm">
+            <h4 class="text-lg font-bold mb-1">Salário Mínimo</h4>
+            <p class="text-xs text-slate-400 mb-4">Pelo regimento, o síndico pode gastar por mês até 5 salários mínimos. O teto do Dashboard é recalculado automaticamente.</p>
+            <form id="form-salario" onsubmit="salvarSalario(event)" class="space-y-4" autocomplete="off">
+                <input type="number" step="0.01" min="0.01" inputmode="decimal" id="salario-valor" required placeholder="Salário mínimo (R$)" oninput="previaTeto()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                <p class="text-sm text-slate-300">Teto mensal (5x): <strong class="text-blue-400" id="salario-previa">R$ 0,00</strong></p>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-salario')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 rounded-lg text-sm">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="modal-user" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
         <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-md">
             <h4 class="text-lg font-bold mb-4">Cadastrar Novo Usuário</h4>
@@ -631,8 +652,10 @@
         const EMAIL_DOMAIN = 'bluevillage.app'; // domínio interno dos logins (nenhum e-mail é enviado)
 
         const CONTA_COR = { 'Conta Principal': 'text-emerald-400', 'Fundo de Reserva': 'text-blue-400', 'Salão de Festa': 'text-pink-400' };
-        const SALARIO_MINIMO = 1518.00;
-        const TETO_GASTOS = SALARIO_MINIMO * 5;
+        /* regimento: o síndico pode gastar por mês até 5 salários mínimos (valor do salário fica no banco, tabela config) */
+        const MULT_TETO = 5;
+        let SALARIO_MINIMO = 1518.00;
+        let TETO_GASTOS = SALARIO_MINIMO * MULT_TETO;
         let globalSuppliers = [];
         let globalMaintenance = [];
         let globalTransactions = [];
@@ -642,7 +665,13 @@
         const itemsPerPage = 6;
         let SBM, sb, canal = null, sessionUid = null, justLoggedIn = false, senhaBootstrap = null, reloadTimer = null, pollTimer = null;
 
-        document.getElementById('teto-label').innerText = brl(TETO_GASTOS);
+        function mostrarSalario() {
+            TETO_GASTOS = SALARIO_MINIMO * MULT_TETO;
+            document.getElementById('salario-label').innerText = brl(SALARIO_MINIMO);
+            document.getElementById('teto-label').innerText = brl(TETO_GASTOS);
+            const disc = document.getElementById('salario-discreto'); if (disc) disc.innerText = brl(SALARIO_MINIMO);
+        }
+        mostrarSalario();
 
         /* ---------- utilidades ---------- */
         function brl(v) { return 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
@@ -821,7 +850,7 @@
         function iniciarTempoReal() {
             pararTempoReal();
             canal = sb.channel('bv-' + Date.now());
-            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
+            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
             canal.subscribe();
             pollTimer = setInterval(() => { if (!document.hidden) agendarRecarga(); }, 30000);
         }
@@ -866,6 +895,8 @@
                 document.getElementById('form-finance').reset();
                 document.getElementById('fin-id').value = "";
                 document.getElementById('fin-date').value = today();
+            } else if (id === 'modal-salario') {
+                document.getElementById('salario-valor').value = SALARIO_MINIMO.toFixed(2); previaTeto();
             } else if (id === 'modal-zerar') {
                 document.getElementById('form-zerar').reset();
             } else if (id === 'modal-user') {
@@ -1051,6 +1082,9 @@
                     globalTransactions = fin.map(f => ({ ...f, amount: Number(f.amount) || 0 }));
                     globalSuppliers = sup.map(s => ({ id: s.id, name: s.name, service: s.service, contactName: s.contact_name, contactPhone: s.contact_phone, contractStatus: s.contract_status, monthlyValue: Number(s.monthly_value) || 0, expiryDate: s.expiry_date, contractLink: s.contract_link }));
                     globalUsers = users;
+                    /* salário mínimo: se a tabela ainda não existir, mantém o valor padrão */
+                    try { const cfg = await q(sb.from('config').select('salario').eq('id', 'main').maybeSingle()); if (cfg && Number(cfg.salario) > 0) SALARIO_MINIMO = Number(cfg.salario); } catch (e) { console.warn('config', e); }
+                    mostrarSalario();
                     globalMaintenance = maint.map(m => ({ ...m, dueDate: m.due_date }));
                     if (!users.some(u => u.id === sessionUid)) { showToast('Seu acesso foi removido.', true); sb.auth.signOut(); return; }
                     renderAll(logs);
@@ -1604,11 +1638,29 @@
             });
         }
 
+        /* ---------- salário mínimo (base do teto de gastos) ---------- */
+        function previaTeto() { document.getElementById('salario-previa').innerText = brl((parseFloat(document.getElementById('salario-valor').value) || 0) * MULT_TETO); }
+        async function salvarSalario(e) {
+            e.preventDefault();
+            const form = e.target;
+            await withBusy(form, async () => {
+                const v = Math.round(parseFloat(document.getElementById('salario-valor').value) * 100) / 100;
+                if (!(v > 0)) throw { message: 'Informe um valor válido.' };
+                const antigo = SALARIO_MINIMO;
+                await q(sb.from('config').upsert({ id: 'main', salario: v }));
+                SALARIO_MINIMO = v; mostrarSalario();
+                log('SALARIO_MINIMO', `Salário mínimo alterado de ${brl(antigo)} para ${brl(v)} por ${currentUserLoggedIn.name}`);
+                closeModal('modal-salario');
+                showToast('Salário mínimo atualizado! Teto recalculado.');
+                loadAllData();
+            });
+        }
+
         /* ---------- backup do banco (Supabase) ---------- */
         async function backupBanco(btn) {
             if (btn.disabled) return; btn.disabled = true;
             try {
-                const tabelas = ['transactions', 'suppliers', 'maintenance', 'perfis', 'audit_logs'], dados = {};
+                const tabelas = ['transactions', 'suppliers', 'maintenance', 'perfis', 'audit_logs', 'config'], dados = {};
                 for (const t of tabelas) dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : 'id'));
                 const arq = { sistema: 'Blue Village Residence', exportadoEm: new Date().toISOString(), exportadoPor: currentUserLoggedIn.username, observacao: 'As senhas não fazem parte do backup.', tabelas: dados };
                 const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(arq, null, 2)], { type: 'application/json' }));
