@@ -153,6 +153,7 @@
                 <button onclick="switchTab('finance')" id="btn-finance" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-wallet w-5"></i><span>Financeiro</span></button>
                 <button onclick="switchTab('maintenance')" id="btn-maintenance" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-screwdriver-wrench w-5"></i><span>Manutenção & Torres</span></button>
                 <button onclick="switchTab('suppliers')" id="btn-suppliers" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-handshake w-5"></i><span>Fornecedores & Contratos</span></button>
+                <button onclick="switchTab('quotes')" id="btn-quotes" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-file-invoice-dollar w-5"></i><span>Orçamentos</span></button>
                 <button onclick="switchTab('users')" id="btn-users" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-users-gear w-5"></i><span>Gestão de Usuários</span></button>
                 <button onclick="switchTab('database')" id="btn-database" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-database w-5"></i><span>Banco & Logs</span></button>
             </aside>
@@ -379,6 +380,40 @@
                     </div>
                 </div>
 
+                <!-- ORÇAMENTOS (cotações com 3 orçamentos) -->
+                <div id="tab-quotes" class="hidden space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold">Orçamentos & Cotações</h3>
+                            <p class="text-xs text-slate-400 mt-1">Para cada serviço ou manutenção, registre os 3 orçamentos, compare e aprove o escolhido.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="exportarOrcamentosPDF(this)" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-file-pdf mr-1 text-rose-400"></i> Exportar PDF</button>
+                            <button onclick="openModal('modal-quote')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i> Nova Cotação</button>
+                        </div>
+                    </div>
+                    <div id="quotes-aviso" class="hidden p-4 rounded-xl border bg-amber-500/10 border-amber-500/30 text-amber-400 text-sm"></div>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl"><p class="text-xs text-slate-400">Em cotação</p><h4 id="q-count-aberta" class="text-xl font-bold text-amber-400 mt-1">0</h4></div>
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl"><p class="text-xs text-slate-400">Prontas para aprovar (3 orçamentos)</p><h4 id="q-count-pronta" class="text-xl font-bold text-blue-400 mt-1">0</h4></div>
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl"><p class="text-xs text-slate-400">Aprovadas</p><h4 id="q-count-aprovada" class="text-xl font-bold text-emerald-400 mt-1">0</h4></div>
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl"><p class="text-xs text-slate-400">Total aprovado</p><h4 id="q-total-aprovado" class="text-xl font-bold text-emerald-400 mt-1">R$ 0,00</h4></div>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex flex-col md:flex-row gap-3 md:items-center">
+                        <input type="text" id="quote-busca" oninput="renderQuotes()" placeholder="Buscar por serviço ou empresa..." class="w-full md:flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <select id="quote-filtro-status" onchange="renderQuotes()" class="min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
+                                <option value="TODOS">Todos os status</option>
+                                <option value="Em cotação">Em cotação</option>
+                                <option value="Aprovado">Aprovado</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                            <select id="quote-filtro-local" onchange="renderQuotes()" class="min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"></select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="quotes-container"></div>
+                </div>
+
                 <!-- USUÁRIOS -->
                 <div id="tab-users" class="hidden space-y-6">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -478,6 +513,61 @@
                 <div class="flex justify-end space-x-2 pt-2">
                     <button type="button" onclick="closeModal('modal-zerar')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
                     <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 rounded-lg text-sm text-white">Zerar sistema</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- cadastro / edição de cotação -->
+    <div id="modal-quote" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-3xl">
+            <h4 id="quote-modal-title" class="text-lg font-bold mb-4">Nova Cotação</h4>
+            <form id="form-quote" onsubmit="salvarCotacao(event)" class="space-y-4" autocomplete="off">
+                <input type="hidden" id="quote-id">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2"><label class="campo-label" for="quote-titulo">Serviço / Manutenção a contratar</label>
+                        <input type="text" id="quote-titulo" required placeholder="Ex.: Pintura da fachada da Torre Gunga" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div><label class="campo-label" for="quote-local">Local / Setor</label>
+                        <select id="quote-local" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></select></div>
+                    <div><label class="campo-label" for="quote-categoria">Categoria</label>
+                        <input type="text" id="quote-categoria" list="lista-categorias" placeholder="Ex.: Pintura, Elétrica..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div><label class="campo-label">Data da solicitação</label><input type="hidden" id="quote-data" data-dp data-obrig><button type="button" class="dp-btn" data-for="quote-data" onclick="abrirCal('quote-data',this)" aria-label="Escolher data"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></button></div>
+                    <div><label class="campo-label" for="quote-desc">Descrição / Observações</label>
+                        <input type="text" id="quote-desc" placeholder="Detalhes do serviço" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                </div>
+                <div class="border-t border-slate-700 pt-4 space-y-3">
+                    <p class="text-sm font-semibold text-slate-200">Orçamentos recebidos <span class="text-xs font-normal text-slate-400">(o regimento pede 3; pode salvar com menos e completar depois)</span></p>
+                    <div id="quote-linhas" class="space-y-3"></div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-quote')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 rounded-lg text-sm">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <datalist id="lista-fornecedores"></datalist>
+    <datalist id="lista-categorias"><option value="Elétrica"><option value="Hidráulica"><option value="Pintura"><option value="Jardinagem"><option value="Elevadores"><option value="Piscina"><option value="Limpeza"><option value="Segurança"><option value="Manutenção Predial"><option value="Academia"></datalist>
+
+    <!-- detalhe / comparação / aprovação -->
+    <div id="modal-quote-detail" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-3xl space-y-4">
+            <h4 id="quote-detail-title" class="text-lg font-bold text-blue-400 border-b border-slate-700 pb-2"></h4>
+            <div id="quote-detail-content" class="space-y-3 text-sm text-slate-300 break-words"></div>
+            <div class="flex flex-wrap justify-end gap-2 pt-2" id="quote-detail-acoes"></div>
+        </div>
+    </div>
+
+    <!-- justificativa quando não escolhe o menor preço -->
+    <div id="modal-quote-just" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4" style="z-index:56">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-md">
+            <h4 class="text-lg font-bold mb-2">Justificativa</h4>
+            <p class="text-sm text-slate-300 mb-4" id="quote-just-msg"></p>
+            <form id="form-quote-just" onsubmit="confirmarJustificativa(event)" class="space-y-4" autocomplete="off">
+                <textarea id="quote-just-texto" required rows="3" placeholder="Ex.: melhor prazo, garantia maior, empresa já conhecida..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></textarea>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('modal-quote-just')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 rounded-lg text-sm text-white">Continuar</button>
                 </div>
             </form>
         </div>
@@ -686,6 +776,7 @@
         let globalMaintenance = [];
         let globalTransactions = [];
         let globalUsers = [];
+        let globalQuotes = [], quotesOk = true;
         let currentUserLoggedIn = null;
         let currentMaintenancePage = 1;
         const itemsPerPage = 6;
@@ -732,6 +823,8 @@
             if (/failed to fetch|networkerror|load failed/i.test(m)) return 'Sem conexão com a internet. Verifique e tente novamente.';
             if (/senha inicial n[ãa]o configurada/i.test(m)) return 'Senha inicial do admin não configurada no Supabase (veja o README).';
             if (/chamado conclu[íi]do/i.test(m)) return m.replace(/^Erro: /, '');
+            if (/cota[çc][ãa]o (aprovada|cancelada)/i.test(m)) return m.replace(/^Erro: /, '');
+            if (/s[ãa]o necess[áa]rios 3 or[çc]amentos/i.test(m)) return 'São necessários 3 orçamentos para aprovar.';
             if (/usu[áa]rio principal/i.test(m)) return 'O usuário principal (admin) não pode ser excluído.';
             if (c === '42501' || /row-level security|n[ãa]o autorizado|permission/i.test(m)) return 'Sem permissão para esta ação.';
             if (/password should be|weak/i.test(m)) return 'Senha fraca: use no mínimo 6 caracteres.';
@@ -885,7 +978,7 @@
         function iniciarTempoReal() {
             pararTempoReal();
             canal = sb.channel('bv-' + Date.now());
-            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
+            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config', 'quotes'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
             canal.subscribe();
             pollTimer = setInterval(() => { if (!document.hidden) agendarRecarga(); }, 30000);
         }
@@ -900,7 +993,7 @@
         }
         function switchTab(tab) {
             fecharCal();
-            ['dashboard', 'finance', 'maintenance', 'suppliers', 'users', 'database'].forEach(t => {
+            ['dashboard', 'finance', 'maintenance', 'suppliers', 'quotes', 'users', 'database'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
                 document.getElementById(`btn-${t}`).classList.remove('bg-blue-600', 'text-white');
                 document.getElementById(`btn-${t}`).classList.add('text-slate-300', 'hover:bg-slate-700/50');
@@ -930,6 +1023,12 @@
                 document.getElementById('form-finance').reset();
                 document.getElementById('fin-id').value = "";
                 document.getElementById('fin-date').value = today();
+            } else if (id === 'modal-quote') {
+                document.getElementById('quote-modal-title').innerText = 'Nova Cotação';
+                document.getElementById('form-quote').reset();
+                document.getElementById('quote-id').value = '';
+                document.getElementById('quote-data').value = today();
+                montarLinhasOrcamento([]);
             } else if (id === 'modal-salario') {
                 document.getElementById('salario-valor').value = (SALARIO_MINIMO || SALARIO_PADRAO).toFixed(2); previaTeto();
             } else if (id === 'modal-zerar') {
@@ -1107,6 +1206,8 @@
             if (carregando) return carregando;
             carregando = (async () => {
                 try {
+                    /* orçamentos em paralelo; se a tabela ainda não existir, o resto do sistema continua funcionando */
+                    const pQuotes = sb.from('quotes').select('*').order('id', { ascending: false }).then(r => r, e => ({ error: e }));
                     const [fin, sup, users, maint, logs] = await Promise.all([
                         q(sb.from('transactions').select('*').order('date', { ascending: false }).order('id', { ascending: false })),
                         q(sb.from('suppliers').select('*').order('name')),
@@ -1114,6 +1215,7 @@
                         q(sb.from('maintenance').select('*').order('id', { ascending: false })),
                         q(sb.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(50))
                     ]);
+                    const resQuotes = await pQuotes;
                     globalTransactions = fin.map(f => ({ ...f, amount: Number(f.amount) || 0 }));
                     globalSuppliers = sup.map(s => ({ id: s.id, name: s.name, service: s.service, contactName: s.contact_name, contactPhone: s.contact_phone, contractStatus: s.contract_status, monthlyValue: Number(s.monthly_value) || 0, expiryDate: s.expiry_date, contractLink: s.contract_link }));
                     globalUsers = users;
@@ -1123,6 +1225,7 @@
                     mostrarSalario();
                     globalMaintenance = maint.map(m => ({ ...m, dueDate: m.due_date }));
                     if (!users.some(u => u.id === sessionUid)) { showToast('Seu acesso foi removido.', true); encerrarSessao(); return; }
+                    carregarCotacoes(resQuotes);
                     renderAll(logs);
                 } catch (err) { console.error(err); showToast(errMsg(err), true); }
                 finally { carregando = null; }
@@ -1206,6 +1309,9 @@
             document.getElementById('bar-gunga').style.width = `${(countGunga / maxMaint) * 100}%`;
             document.getElementById('bar-itacare').style.width = `${(countItacare / maxMaint) * 100}%`;
             renderMaintenance();
+
+            /* orçamentos */
+            renderQuotes();
 
             /* logs */
             let logsHtml = '';
@@ -1674,6 +1780,231 @@
             });
         }
 
+        /* ---------- ORÇAMENTOS: cotações com até 3 orçamentos ---------- */
+        const QTD_ORC = 3;
+        const travadaQ = c => c && (c.status === 'Aprovado' || c.status === 'Cancelado');
+        const orcValidos = c => (c.orcamentos || []).filter(o => o && o.empresa && Number(o.valor) > 0);
+        const menorOrc = c => { const v = orcValidos(c); return v.length ? v.reduce((a, b) => Number(b.valor) < Number(a.valor) ? b : a) : null; };
+        function carregarCotacoes(res) {
+            try {
+                if (res.error) throw res.error; const r = res.data || [];
+                globalQuotes = r.map(c => ({ ...c, orcamentos: Array.isArray(c.orcamentos) ? c.orcamentos : [] })); quotesOk = true;
+            } catch (e) { console.warn('quotes', e); globalQuotes = []; quotesOk = false; }
+            const fl = document.getElementById('lista-fornecedores'); if (fl) fl.innerHTML = globalSuppliers.map(s2 => `<option value="${esc(s2.name)}">`).join('');
+        }
+        function preencherLocais() {
+            const base = document.getElementById('maint-tower').innerHTML;
+            document.getElementById('quote-local').innerHTML = base;
+            document.getElementById('quote-filtro-local').innerHTML = '<option value="TODOS">Todos os locais</option>' + base;
+        }
+        function montarLinhasOrcamento(lista) {
+            let h = '';
+            for (let i = 0; i < QTD_ORC; i++) {
+                const o = lista[i] || {};
+                h += `<div class="bg-slate-900/60 border border-slate-700 rounded-lg p-3 grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    <div class="sm:col-span-12 text-xs font-semibold text-blue-400">Orçamento ${i + 1}</div>
+                    <input type="text" data-o="empresa" data-i="${i}" list="lista-fornecedores" value="${esc(o.empresa || '')}" placeholder="Empresa / Prestador" class="sm:col-span-5 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                    <input type="number" step="0.01" min="0" inputmode="decimal" data-o="valor" data-i="${i}" value="${o.valor ?? ''}" placeholder="Valor (R$)" class="sm:col-span-3 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                    <input type="text" data-o="prazo" data-i="${i}" value="${esc(o.prazo || '')}" placeholder="Prazo de execução" class="sm:col-span-4 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                    <input type="text" data-o="contato" data-i="${i}" value="${esc(o.contato || '')}" placeholder="Contato / Telefone" inputmode="tel" class="sm:col-span-5 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                    <input type="text" data-o="obs" data-i="${i}" value="${esc(o.obs || '')}" placeholder="Garantia, condições, link do PDF..." class="sm:col-span-7 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                </div>`;
+            }
+            document.getElementById('quote-linhas').innerHTML = h;
+        }
+        function lerLinhasOrcamento() {
+            const r = [];
+            for (let i = 0; i < QTD_ORC; i++) {
+                const g = k => (document.querySelector(`#quote-linhas [data-o="${k}"][data-i="${i}"]`).value || '').trim();
+                const o = { empresa: g('empresa'), valor: g('valor') === '' ? null : Math.round(parseFloat(g('valor')) * 100) / 100, prazo: g('prazo'), contato: g('contato'), obs: g('obs') };
+                if (o.empresa || o.valor || o.prazo || o.contato || o.obs) {
+                    if (!o.empresa) throw { message: `Informe a empresa do orçamento ${i + 1}.` };
+                    if (!(o.valor > 0)) throw { message: `Informe o valor do orçamento ${i + 1}.` };
+                    r.push(o);
+                }
+            }
+            return r;
+        }
+        function quotesFiltradas() {
+            const b = document.getElementById('quote-busca').value.trim().toLowerCase(), st = document.getElementById('quote-filtro-status').value, lc = document.getElementById('quote-filtro-local').value;
+            return globalQuotes.filter(c => (st === 'TODOS' || c.status === st) && (lc === 'TODOS' || !lc || c.local === lc) &&
+                (!b || (c.titulo || '').toLowerCase().includes(b) || (c.categoria || '').toLowerCase().includes(b) || (c.orcamentos || []).some(o => (o.empresa || '').toLowerCase().includes(b))));
+        }
+        function renderQuotes() {
+            const aviso = document.getElementById('quotes-aviso');
+            aviso.classList.toggle('hidden', quotesOk);
+            if (!quotesOk) aviso.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> A tabela de orçamentos ainda não existe no banco. Execute o <strong>supabase.sql</strong> atualizado no SQL Editor do Supabase.';
+            const abertas = globalQuotes.filter(c => c.status === 'Em cotação');
+            document.getElementById('q-count-aberta').innerText = abertas.length;
+            document.getElementById('q-count-pronta').innerText = abertas.filter(c => orcValidos(c).length >= QTD_ORC).length;
+            const aprov = globalQuotes.filter(c => c.status === 'Aprovado');
+            document.getElementById('q-count-aprovada').innerText = aprov.length;
+            document.getElementById('q-total-aprovado').innerText = brl(aprov.reduce((a, c) => a + (Number(c.valor_aprovado) || 0), 0));
+            const lista = quotesFiltradas();
+            let h = '';
+            lista.forEach(c => {
+                const v = orcValidos(c), menor = menorOrc(c), n = v.length;
+                const cor = c.status === 'Aprovado' ? 'bg-emerald-500/20 text-emerald-400' : c.status === 'Cancelado' ? 'bg-slate-600/40 text-slate-400' : (n >= QTD_ORC ? 'bg-blue-500/20 text-blue-300' : 'bg-amber-500/20 text-amber-400');
+                const rotulo = c.status === 'Em cotação' ? (n >= QTD_ORC ? 'Pronta para aprovar' : 'Em cotação') : c.status;
+                h += `<div onclick="verCotacao(${c.id})" class="bg-slate-800 border border-slate-700 p-5 rounded-xl space-y-3 cursor-pointer hover:border-blue-500 transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start gap-2 mb-2">
+                            <span class="text-xs text-blue-400 font-semibold"><i class="fa-solid fa-location-dot mr-1"></i>${esc(c.local || 'Geral')}</span>
+                            <span class="text-xs ${cor} px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap">${travadaQ(c) ? '<i class="fa-solid fa-lock mr-1"></i>' : ''}${esc(rotulo)}</span>
+                        </div>
+                        <h4 class="font-bold text-slate-100 break-words">${esc(c.titulo)}</h4>
+                        <p class="text-xs text-slate-400 mt-1">${esc(c.categoria || 'Sem categoria')} · ${fmtDate(c.data)}</p>
+                    </div>
+                    <div class="space-y-1.5">
+                        <div class="flex gap-1">${[0, 1, 2].map(i => `<span class="h-1.5 flex-1 rounded-full ${i < n ? 'bg-blue-500' : 'bg-slate-700'}"></span>`).join('')}</div>
+                        <p class="text-xs text-slate-400">${n} de ${QTD_ORC} orçamentos${menor ? ` · menor: <strong class="text-emerald-400">${brl(menor.valor)}</strong>` : ''}</p>
+                        ${c.status === 'Aprovado' ? `<p class="text-xs text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>${esc(c.empresa_aprovada)} — ${brl(c.valor_aprovado)}</p>` : ''}
+                    </div>
+                </div>`;
+            });
+            document.getElementById('quotes-container').innerHTML = h || `<div class="md:col-span-2 xl:col-span-3 bg-slate-800 border border-slate-700 p-8 rounded-xl text-center text-slate-500">Nenhuma cotação encontrada.</div>`;
+        }
+        function verCotacao(id) {
+            const c = globalQuotes.find(x => x.id === id); if (!c) return;
+            const v = orcValidos(c), menor = menorOrc(c), pronta = v.length >= QTD_ORC;
+            document.getElementById('quote-detail-title').innerHTML = `<i class="fa-solid fa-file-invoice-dollar mr-2"></i>${esc(c.titulo)}`;
+            let h = `<p><strong>Local:</strong> ${esc(c.local || 'Geral')} &nbsp;·&nbsp; <strong>Categoria:</strong> ${esc(c.categoria || '-')} &nbsp;·&nbsp; <strong>Solicitação:</strong> ${fmtDate(c.data)}</p>`;
+            if (c.descricao) h += `<p><strong>Descrição:</strong> ${esc(c.descricao)}</p>`;
+            h += `<p><strong>Status:</strong> <span class="${c.status === 'Aprovado' ? 'text-emerald-400' : c.status === 'Cancelado' ? 'text-slate-400' : 'text-amber-400'} font-semibold">${esc(c.status)}</span></p>`;
+            h += `<div class="overflow-x-auto"><table class="w-full text-left text-xs border-collapse"><thead><tr class="bg-slate-700/50 text-slate-300 uppercase"><th class="p-2">#</th><th class="p-2">Empresa</th><th class="p-2 text-right">Valor</th><th class="p-2">Prazo</th><th class="p-2">Contato</th><th class="p-2">Observações</th><th class="p-2"></th></tr></thead><tbody class="divide-y divide-slate-700">`;
+            (c.orcamentos || []).forEach((o, i) => {
+                const ehMenor = menor && o === menor, aprovado = c.status === 'Aprovado' && c.escolhido === i;
+                h += `<tr class="${aprovado ? 'bg-emerald-500/10' : ''}"><td class="p-2">${i + 1}</td><td class="p-2 font-semibold">${esc(o.empresa)}${aprovado ? ' <span class="text-emerald-400">(aprovado)</span>' : ''}</td>
+                    <td class="p-2 text-right whitespace-nowrap ${ehMenor ? 'text-emerald-400 font-bold' : ''}">${brl(o.valor)}${ehMenor ? ' <span class="text-[10px]">menor</span>' : ''}</td><td class="p-2">${esc(o.prazo || '-')}</td><td class="p-2">${esc(o.contato || '-')}</td><td class="p-2">${esc(o.obs || '-')}</td>
+                    <td class="p-2 text-right">${c.status === 'Em cotação' && pronta ? `<button onclick="aprovarOrcamento(${c.id}, ${i})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap">Aprovar</button>` : ''}</td></tr>`;
+            });
+            if (!(c.orcamentos || []).length) h += `<tr><td colspan="7" class="p-3 text-center text-slate-500">Nenhum orçamento lançado.</td></tr>`;
+            h += `</tbody></table></div>`;
+            if (c.status === 'Em cotação' && !pronta) h += `<p class="text-xs text-amber-400"><i class="fa-solid fa-circle-info mr-1"></i>Faltam ${QTD_ORC - v.length} orçamento(s) para poder aprovar (regimento: 3 orçamentos).</p>`;
+            if (c.status === 'Aprovado') h += `<div class="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-xs space-y-1"><p class="text-emerald-400 font-semibold"><i class="fa-solid fa-lock mr-1"></i>Aprovado: ${esc(c.empresa_aprovada)} — ${brl(c.valor_aprovado)}</p>${c.justificativa ? `<p><strong>Justificativa:</strong> ${esc(c.justificativa)}</p>` : ''}<p class="text-slate-400">Por ${esc(c.aprovado_por || '-')} em ${fmtDateTime(c.aprovado_em)}</p></div>`;
+            if (c.status === 'Cancelado') h += `<p class="text-xs text-slate-400"><i class="fa-solid fa-lock mr-1"></i>Cotação cancelada por ${esc(c.aprovado_por || '-')} em ${fmtDateTime(c.aprovado_em)}.</p>`;
+            h += `<p class="text-xs text-slate-500">Criada por ${esc(c.created_by || '-')} em ${fmtDateTime(c.created_at)}</p>`;
+            document.getElementById('quote-detail-content').innerHTML = h;
+            document.getElementById('quote-detail-acoes').innerHTML = (travadaQ(c) ? '' : `
+                <button onclick="cancelarCotacao(${c.id})" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm text-amber-300"><i class="fa-solid fa-ban mr-1"></i>Cancelar cotação</button>
+                <button onclick="excluirCotacao(${c.id})" class="px-4 py-2 bg-rose-500/20 hover:bg-rose-600 text-rose-400 hover:text-white rounded-lg text-sm"><i class="fa-solid fa-trash mr-1"></i>Excluir</button>
+                <button onclick="editarCotacao(${c.id})" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm text-white"><i class="fa-solid fa-pen-to-square mr-1"></i>Editar / lançar orçamentos</button>`) +
+                `<button onclick="closeModal('modal-quote-detail')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm text-white">Fechar</button>`;
+            fecharCal(); document.getElementById('modal-quote-detail').classList.remove('hidden');
+        }
+        function editarCotacao(id) {
+            const c = globalQuotes.find(x => x.id === id); if (!c) return;
+            if (travadaQ(c)) return showToast('Cotação aprovada ou cancelada não pode ser editada.', true);
+            closeModal('modal-quote-detail');
+            document.getElementById('quote-modal-title').innerText = 'Editar Cotação';
+            document.getElementById('quote-id').value = c.id;
+            document.getElementById('quote-titulo').value = c.titulo || '';
+            document.getElementById('quote-local').value = c.local || 'Geral';
+            document.getElementById('quote-categoria').value = c.categoria || '';
+            document.getElementById('quote-data').value = c.data || today();
+            document.getElementById('quote-desc').value = c.descricao || '';
+            montarLinhasOrcamento(c.orcamentos || []);
+            fecharCal(); syncDatas();
+            document.getElementById('modal-quote').classList.remove('hidden');
+        }
+        async function salvarCotacao(e) {
+            e.preventDefault();
+            const form = e.target;
+            await withBusy(form, async () => {
+                const id = document.getElementById('quote-id').value;
+                const data = {
+                    titulo: document.getElementById('quote-titulo').value.trim(),
+                    local: document.getElementById('quote-local').value,
+                    categoria: document.getElementById('quote-categoria').value.trim(),
+                    data: document.getElementById('quote-data').value || today(),
+                    descricao: document.getElementById('quote-desc').value.trim(),
+                    orcamentos: lerLinhasOrcamento()
+                };
+                if (!data.titulo) throw { message: 'Informe o serviço a contratar.' };
+                if (id) {
+                    await q(sb.from('quotes').update(data).eq('id', id));
+                    log('EDITAR_COTACAO', `Cotação #${id} atualizada: ${data.titulo} (${data.orcamentos.length} orçamento(s))`);
+                } else {
+                    await q(sb.from('quotes').insert({ ...data, status: 'Em cotação', created_by: currentUserLoggedIn.name }));
+                    log('NOVA_COTACAO', `Cotação aberta: ${data.titulo} (${data.orcamentos.length} orçamento(s)) por ${currentUserLoggedIn.name}`);
+                }
+                closeModal('modal-quote');
+                showToast(data.orcamentos.length >= QTD_ORC ? 'Cotação salva! Já tem 3 orçamentos e pode ser aprovada.' : `Cotação salva com ${data.orcamentos.length} de ${QTD_ORC} orçamentos.`);
+                loadAllData();
+            });
+        }
+        let justResolver = null;
+        function pedirJustificativa(msg) {
+            return new Promise(res => {
+                justResolver = res;
+                document.getElementById('quote-just-msg').innerText = msg;
+                document.getElementById('form-quote-just').reset();
+                const m = document.getElementById('modal-quote-just'); m.classList.remove('hidden');
+                const obs = new MutationObserver(() => { if (m.classList.contains('hidden')) { obs.disconnect(); if (justResolver) { justResolver(null); justResolver = null; } } });
+                obs.observe(m, { attributes: true, attributeFilter: ['class'] });
+                setTimeout(() => document.getElementById('quote-just-texto').focus(), 50);
+            });
+        }
+        function confirmarJustificativa(e) {
+            e.preventDefault();
+            const t = document.getElementById('quote-just-texto').value.trim(); if (!t) return;
+            const r = justResolver; justResolver = null; closeModal('modal-quote-just'); if (r) r(t);
+        }
+        async function aprovarOrcamento(id, idx) {
+            const c = globalQuotes.find(x => x.id === id); if (!c || travadaQ(c)) return;
+            if (orcValidos(c).length < QTD_ORC) return showToast('São necessários 3 orçamentos para aprovar.', true);
+            const o = c.orcamentos[idx], menor = menorOrc(c);
+            let justificativa = '';
+            if (Number(o.valor) > Number(menor.valor)) {
+                justificativa = await pedirJustificativa(`O orçamento escolhido (${o.empresa}, ${brl(o.valor)}) não é o de menor valor (${menor.empresa}, ${brl(menor.valor)}). Informe o motivo da escolha:`);
+                if (!justificativa) return;
+            }
+            if (!(await confirmBox(`Aprovar o orçamento de ${o.empresa} (${brl(o.valor)})? Depois de aprovada, a cotação não poderá mais ser editada nem excluída.`, 'Aprovar'))) return;
+            try {
+                await q(sb.from('quotes').update({ status: 'Aprovado', escolhido: idx, empresa_aprovada: o.empresa, valor_aprovado: o.valor, justificativa: justificativa || null, aprovado_por: currentUserLoggedIn.name, aprovado_em: new Date().toISOString() }).eq('id', id));
+                log('APROVAR_COTACAO', `Cotação #${id} (${c.titulo}) aprovada: ${o.empresa} — ${brl(o.valor)}${justificativa ? ' | Justificativa: ' + justificativa : ''}`);
+                closeModal('modal-quote-detail');
+                showToast('Orçamento aprovado!');
+                await loadAllData();
+            } catch (err) { console.error(err); showToast(errMsg(err), true); }
+        }
+        async function cancelarCotacao(id) {
+            const c = globalQuotes.find(x => x.id === id); if (!c || travadaQ(c)) return;
+            if (!(await confirmBox(`Cancelar a cotação "${c.titulo}"? Ela ficará registrada como cancelada e não poderá mais ser alterada.`, 'Cancelar cotação'))) return;
+            try {
+                await q(sb.from('quotes').update({ status: 'Cancelado', aprovado_por: currentUserLoggedIn.name, aprovado_em: new Date().toISOString() }).eq('id', id));
+                log('CANCELAR_COTACAO', `Cotação #${id} cancelada: ${c.titulo}`);
+                closeModal('modal-quote-detail'); showToast('Cotação cancelada.'); loadAllData();
+            } catch (err) { console.error(err); showToast(errMsg(err), true); }
+        }
+        async function excluirCotacao(id) {
+            const c = globalQuotes.find(x => x.id === id); if (!c) return;
+            if (travadaQ(c)) return showToast('Cotação aprovada ou cancelada não pode ser excluída.', true);
+            if (!(await confirmBox(`Excluir a cotação "${c.titulo}"?`, 'Excluir'))) return;
+            try {
+                await q(sb.from('quotes').delete().eq('id', id));
+                log('EXCLUIR_COTACAO', `Cotação #${id} excluída: ${c.titulo}`);
+                closeModal('modal-quote-detail'); showToast('Cotação excluída.'); loadAllData();
+            } catch (err) { console.error(err); showToast(errMsg(err), true); }
+        }
+        function exportarOrcamentosPDF(btn) {
+            exportarPDF(btn, () => {
+                const lista = quotesFiltradas(), st = document.getElementById('quote-filtro-status').value, lc = document.getElementById('quote-filtro-local').value, b = document.getElementById('quote-busca').value.trim();
+                const filtros = []; if (st !== 'TODOS') filtros.push(st); if (lc && lc !== 'TODOS') filtros.push(lc); if (b) filtros.push(`busca "${b}"`);
+                const aprov = lista.filter(c => c.status === 'Aprovado');
+                const cel = (c, i) => { const o = (c.orcamentos || [])[i]; return o ? `${o.empresa}\n${brl(o.valor)}${o.prazo ? '\n' + o.prazo : ''}` : '-'; };
+                const blob = gerarPDF({
+                    titulo: 'Relatório de Orçamentos & Cotações', subtitulo: `${lista.length} cotação(ões)` + (filtros.length ? ` — filtro: ${filtros.join(', ')}` : ' — todas'),
+                    resumo: [`Em cotação: ${lista.filter(c => c.status === 'Em cotação').length}   |   Aprovadas: ${aprov.length}   |   Canceladas: ${lista.filter(c => c.status === 'Cancelado').length}   |   Total aprovado: ${brl(aprov.reduce((a, c) => a + (Number(c.valor_aprovado) || 0), 0))}`],
+                    colunas: [{ t: 'Data', w: 7 }, { t: 'Serviço / Local', w: 17 }, { t: 'Orçamento 1', w: 14 }, { t: 'Orçamento 2', w: 14 }, { t: 'Orçamento 3', w: 14 }, { t: 'Status / Aprovado', w: 20 }],
+                    linhas: lista.map(c => [fmtDate(c.data), `${c.titulo}\n${c.local || 'Geral'}${c.categoria ? ' · ' + c.categoria : ''}`, cel(c, 0), cel(c, 1), cel(c, 2),
+                        c.status === 'Aprovado' ? `APROVADO: ${c.empresa_aprovada}\n${brl(c.valor_aprovado)}\npor ${c.aprovado_por || '-'} em ${fmtDate(String(c.aprovado_em || '').slice(0, 10))}${c.justificativa ? '\nJustificativa: ' + c.justificativa : ''}` : c.status === 'Cancelado' ? 'CANCELADA' : `Em cotação (${orcValidos(c).length} de ${QTD_ORC})`])
+                });
+                return { blob, nome: `orcamentos-${today()}.pdf`, desc: 'Relatório de orçamentos' };
+            });
+        }
+        preencherLocais();
+
         /* ---------- salário mínimo (base do teto de gastos) ---------- */
         function previaTeto() { document.getElementById('salario-previa').innerText = brl((parseFloat(document.getElementById('salario-valor').value) || 0) * MULT_TETO); }
         async function salvarSalario(e) {
@@ -1696,8 +2027,8 @@
         async function backupBanco(btn) {
             if (btn.disabled) return; btn.disabled = true;
             try {
-                const tabelas = ['transactions', 'suppliers', 'maintenance', 'perfis', 'audit_logs', 'config'], dados = {};
-                for (const t of tabelas) dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : 'id'));
+                const tabelas = ['transactions', 'suppliers', 'maintenance', 'quotes', 'perfis', 'audit_logs', 'config'], dados = {};
+                for (const t of tabelas) { try { dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : 'id')); } catch (e) { if (t !== 'quotes') throw e; } }
                 const arq = { sistema: 'Blue Village Residence', exportadoEm: new Date().toISOString(), exportadoPor: currentUserLoggedIn.username, observacao: 'As senhas não fazem parte do backup.', tabelas: dados };
                 const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(arq, null, 2)], { type: 'application/json' }));
                 a.download = `bluevillage-backup-${today()}.json`; document.body.appendChild(a); a.click();
