@@ -74,6 +74,19 @@
         #dp .dp-f button{background:none;border:0;color:#60a5fa;font-weight:600;cursor:pointer;padding:8px 10px;border-radius:7px;font-size:14px}
         @media(hover:hover){#dp .dp-d:hover,#dp .dp-list button:not(.sel):hover{background:#273449}#dp .dp-d.sel:hover{background:#1d4ed8}#dp .dp-nav:hover,#dp .dp-f button:hover{background:#334155}}
         #dp-bg{position:fixed;inset:0;z-index:69;background:rgba(2,6,23,.55);display:none}
+        /* ===== listas de seleção próprias do sistema (iguais no computador e no celular) ===== */
+        select.sel-nativo{display:none!important}
+        .sel-btn{display:flex!important;align-items:center;justify-content:space-between;gap:8px;text-align:left;cursor:pointer;min-width:0}
+        .sel-btn > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .sel-btn svg{width:16px;height:16px;flex-shrink:0;color:#94a3b8;transition:transform .15s}
+        .sel-btn.open{border-color:#3b82f6!important}.sel-btn.open svg{transform:rotate(180deg)}
+        #sel-pop{position:fixed;z-index:72;background:#0f172a;border:1px solid #475569;border-radius:8px;padding:4px;box-shadow:0 14px 32px rgba(0,0,0,.55);
+          max-height:min(320px,60vh);overflow-y:auto;overscroll-behavior:contain;color:#e2e8f0}
+        #sel-pop button{display:block;width:100%;text-align:left;padding:9px 12px;border:0;border-radius:6px;background:none;color:#e2e8f0;font-size:14px;cursor:pointer;line-height:1.3}
+        #sel-pop button.sel{background:#93c5fd;color:#0f172a;font-weight:600}
+        #sel-pop button.foco:not(.sel){background:#273449}
+        @media(hover:hover){#sel-pop button:not(.sel):hover{background:#273449}}
+        @media(max-width:767px){#sel-pop button{min-height:44px;font-size:16px}}
         .campo-label{display:block;font-size:12px;color:#94a3b8;margin:0 0 4px 2px}
 
         /* celular */
@@ -1607,6 +1620,7 @@
             el.style.left = Math.max(8, left) + 'px'; el.style.top = Math.max(8, Math.min(top, innerHeight - hh - 8)) + 'px';
         }
         function fecharCal() {
+            if (typeof fecharSel === 'function' && selAberto) fecharSel();
             dpLista = null; ['dp', 'dp-bg'].forEach(i => { const e = document.getElementById(i); if (e) e.remove(); });
             document.querySelectorAll('.dp-btn.open').forEach(b => b.classList.remove('open')); dpAlvo = null;
         }
@@ -2027,7 +2041,7 @@
                 return { blob, nome: `orcamentos-${today()}.pdf`, desc: 'Relatório de orçamentos' };
             });
         }
-        preencherLocais();
+
 
         /* ---------- salário mínimo (base do teto de gastos) ---------- */
         function previaTeto() { document.getElementById('salario-previa').innerText = brl((parseFloat(document.getElementById('salario-valor').value) || 0) * MULT_TETO); }
@@ -2046,6 +2060,85 @@
                 loadAllData();
             });
         }
+
+        /* ---------- listas de seleção próprias (substituem a lista do navegador, que no celular abre em tela cheia) ---------- */
+        const ICO_SETA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+        let selAberto = null, selFoco = -1;
+        function botaoDoSelect(sel) { return sel && sel.nextElementSibling && sel.nextElementSibling.classList.contains('sel-btn') ? sel.nextElementSibling : null; }
+        function atualizarSelect(sel) {
+            const b = botaoDoSelect(sel); if (!b) return;
+            const op = sel.options[sel.selectedIndex];
+            b.querySelector('span').textContent = op ? op.text : '';
+        }
+        function atualizarSelects() { document.querySelectorAll('select.sel-nativo').forEach(atualizarSelect); }
+        function melhorarSelects(root = document) {
+            root.querySelectorAll('select:not(.sel-nativo)').forEach(sel => {
+                if (sel.closest('#login') || sel.closest('#dp')) return;
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = sel.className + ' sel-btn';
+                b.setAttribute('aria-haspopup', 'listbox');
+                if (sel.id) b.dataset.for = sel.id;
+                if (sel.getAttribute('aria-label')) b.setAttribute('aria-label', sel.getAttribute('aria-label'));
+                b.innerHTML = '<span></span>' + ICO_SETA;
+                b.onclick = e => { e.stopPropagation(); selAberto === sel ? fecharSel() : abrirSel(sel, b); };
+                b.onkeydown = e => { if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key) && selAberto !== sel) { e.preventDefault(); abrirSel(sel, b); } };
+                sel.classList.add('sel-nativo'); sel.after(b);
+                /* opções trocadas pelo sistema (ex.: lista de locais) atualizam o texto do botão */
+                new MutationObserver(() => atualizarSelect(sel)).observe(sel, { childList: true, subtree: true, attributes: true });
+                atualizarSelect(sel);
+            });
+        }
+        /* quando o sistema muda o valor por código (ex.: abrir "Editar"), o botão acompanha */
+        (() => {
+            const P = HTMLSelectElement.prototype;
+            ['value', 'selectedIndex'].forEach(k => {
+                const d = Object.getOwnPropertyDescriptor(P, k);
+                Object.defineProperty(P, k, { configurable: true, enumerable: d.enumerable, get() { return d.get.call(this); }, set(v) { d.set.call(this, v); if (this.classList.contains('sel-nativo')) atualizarSelect(this); } });
+            });
+        })();
+        document.addEventListener('reset', e => setTimeout(() => e.target.querySelectorAll && e.target.querySelectorAll('select.sel-nativo').forEach(atualizarSelect), 0), true);
+        function abrirSel(sel, b) {
+            fecharSel(); fecharCal();
+            selAberto = sel; b.classList.add('open'); b.setAttribute('aria-expanded', 'true');
+            const pop = document.createElement('div'); pop.id = 'sel-pop'; pop.setAttribute('role', 'listbox');
+            pop.innerHTML = [...sel.options].map((o, i) => `<button type="button" role="option" data-i="${i}" class="${i === sel.selectedIndex ? 'sel' : ''}">${esc(o.text)}</button>`).join('');
+            document.body.appendChild(pop);
+            const r = b.getBoundingClientRect(), w = Math.max(r.width, 180);
+            pop.style.width = Math.min(w, innerWidth - 16) + 'px';
+            pop.style.left = Math.max(8, Math.min(r.left, innerWidth - Math.min(w, innerWidth - 16) - 8)) + 'px';
+            const h = pop.offsetHeight, embaixo = innerHeight - r.bottom - 8, emcima = r.top - 8;
+            pop.style.top = (embaixo >= h || embaixo >= emcima ? r.bottom + 4 : Math.max(8, r.top - 4 - h)) + 'px';
+            if (embaixo < h && embaixo >= emcima) pop.style.maxHeight = Math.max(120, embaixo - 4) + 'px';
+            const atual = pop.querySelector('.sel'); if (atual) pop.scrollTop = atual.offsetTop - pop.clientHeight / 2 + atual.offsetHeight / 2;
+            selFoco = sel.selectedIndex;
+            pop.querySelectorAll('button').forEach(o => o.onclick = e => { e.stopPropagation(); escolherOpcao(+o.dataset.i); });
+        }
+        function escolherOpcao(i) {
+            const sel = selAberto; if (!sel) return;
+            const mudou = sel.selectedIndex !== i;
+            sel.selectedIndex = i; fecharSel();
+            if (mudou) sel.dispatchEvent(new Event('change', { bubbles: true }));
+            const b = botaoDoSelect(sel); if (b && innerWidth >= 768) b.focus({ preventScroll: true });
+        }
+        function fecharSel() {
+            const p = document.getElementById('sel-pop'); if (p) p.remove();
+            document.querySelectorAll('.sel-btn.open').forEach(b => { b.classList.remove('open'); b.setAttribute('aria-expanded', 'false'); });
+            selAberto = null; selFoco = -1;
+        }
+        document.addEventListener('pointerdown', e => { if (selAberto && !e.target.closest('#sel-pop') && !e.target.closest('.sel-btn')) fecharSel(); }, true);
+        document.addEventListener('scroll', e => { if (selAberto && !(e.target.closest && e.target.closest('#sel-pop'))) fecharSel(); }, true);
+        window.addEventListener('resize', () => { if (selAberto) fecharSel(); });
+        document.addEventListener('keydown', e => {
+            if (!selAberto) return;
+            const pop = document.getElementById('sel-pop'), itens = pop ? [...pop.querySelectorAll('button')] : [];
+            if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); fecharSel(); return; }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault(); selFoco = Math.max(0, Math.min(itens.length - 1, selFoco + (e.key === 'ArrowDown' ? 1 : -1)));
+                itens.forEach((o, i) => o.classList.toggle('foco', i === selFoco)); if (itens[selFoco]) itens[selFoco].scrollIntoView({ block: 'nearest' });
+            }
+            if (e.key === 'Enter' && selFoco >= 0) { e.preventDefault(); escolherOpcao(selFoco); }
+        }, true);
 
         /* ---------- backup do banco (Supabase) ---------- */
         async function backupBanco(btn) {
@@ -2099,6 +2192,8 @@
 
         /* ---------- início ---------- */
         (async () => {
+            preencherLocais();
+            melhorarSelects();
             addEyes(document);
             setBusy(true, 'Conectando...');
             if (!SUPABASE_URL || !SUPABASE_ANON_KEY) { loginErr.textContent = 'Sistema ainda não configurado: falta a configuração do Supabase.'; setBusy(true, 'Indisponível'); return; }

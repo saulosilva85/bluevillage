@@ -77,6 +77,11 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - No celular, abre no centro da tela com botões grandes.
 - Fecha ao escolher a data, ao tocar fora, com Esc, ao fechar a janela ou ao trocar de tela.
 
+### Listas de seleção
+- Todas as listas (filtros, local/setor, categoria, conta, tipo, prioridade, status, função do usuário) usam a **lista do próprio sistema**, igual no computador e no celular — o celular não abre mais a lista do Android/iPhone em tela cheia.
+- A lista abre logo abaixo do campo (ou acima, se não houver espaço), com a opção atual destacada e rolagem própria.
+- Fecha ao escolher, ao tocar fora, com Esc, ao rolar a tela ou ao trocar de tela. No computador também funciona pelas setas e Enter.
+
 ---
 
 ## 📱 Uso no celular
