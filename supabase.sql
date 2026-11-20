@@ -97,6 +97,42 @@ create table if not exists public.quotes (
   created_at       timestamptz not null default now()
 );
 
+-- Estoque: cadastro de peças/materiais e o histórico de entradas, saídas e ajustes.
+-- A quantidade do item só muda pelas movimentações (o banco calcula o saldo).
+create table if not exists public.stock_items (
+  id           bigint generated always as identity primary key,
+  nome         text not null,
+  codigo       text,
+  categoria    text,
+  unidade      text not null default 'un',
+  local_guarda text,
+  quantidade   numeric(14,3) not null default 0 check (quantidade >= 0),
+  minimo       numeric(14,3) not null default 0 check (minimo >= 0),
+  custo        numeric(14,2),
+  obs          text,
+  created_by   text,
+  created_at   timestamptz not null default now()
+);
+
+create table if not exists public.stock_moves (
+  id            bigint generated always as identity primary key,
+  item_id       bigint not null references public.stock_items(id) on delete cascade,
+  tipo          text not null check (tipo in ('Entrada', 'Saída', 'Ajuste')),
+  quantidade    numeric(14,3) not null check (quantidade >= 0),
+  saldo_antes   numeric(14,3),
+  saldo_apos    numeric(14,3),
+  data          date not null default current_date,
+  setor         text,
+  manutencao_id bigint,
+  fornecedor    text,
+  documento     text,
+  custo         numeric(14,2),
+  obs           text,
+  usuario       text,
+  created_at    timestamptz not null default now()
+);
+create index if not exists stock_moves_item on public.stock_moves (item_id, id desc);
+
 create table if not exists public.audit_logs (
   id        bigint generated always as identity primary key,
   action    text not null,
@@ -138,12 +174,18 @@ alter table public.maintenance  enable row level security;
 alter table public.audit_logs   enable row level security;
 alter table public.config       enable row level security;
 alter table public.quotes       enable row level security;
+alter table public.stock_items  enable row level security;
+alter table public.stock_moves  enable row level security;
 
 drop policy if exists ativos on public.transactions;
 drop policy if exists ativos on public.suppliers;
 drop policy if exists ativos on public.maintenance;
 drop policy if exists ativos on public.config;
 drop policy if exists ativos on public.quotes;
+drop policy if exists ativos on public.stock_items;
+drop policy if exists ativos on public.stock_moves;
+create policy ativos on public.stock_items for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
+create policy ativos on public.stock_moves for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 create policy ativos on public.quotes for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 create policy ativos on public.config for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
 create policy ativos on public.transactions for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
@@ -230,7 +272,7 @@ begin
   if not public.eh_ativo() then raise exception 'Não autorizado'; end if;
   select encrypted_password into h from auth.users where email = 'admin@bluevillage.app';
   if h is null or h <> extensions.crypt(coalesce(senha, ''), h) then raise exception 'Senha incorreta'; end if;
-  truncate table public.transactions, public.suppliers, public.maintenance, public.quotes, public.audit_logs restart identity;
+  truncate table public.transactions, public.suppliers, public.maintenance, public.quotes, public.stock_moves, public.stock_items, public.audit_logs restart identity;
   delete from auth.users where email <> 'admin@bluevillage.app' and email like '%@bluevillage.app';
   -- encerra as sessões abertas (os aparelhos voltam para a tela de login)
   delete from auth.sessions where true;
@@ -285,6 +327,63 @@ drop trigger if exists bv_travar_cotacao on public.quotes;
 create trigger bv_travar_cotacao before update or delete on public.quotes
   for each row execute function public.bv_travar_cotacao();
 
+-- ---------- Estoque: saldo calculado pelo banco ----------
+-- Cada entrada soma, cada saída subtrai (sem deixar ficar negativo) e o ajuste
+-- de inventário troca o saldo pela quantidade contada.
+create or replace function public.bv_movimentar_estoque() returns trigger
+language plpgsql as $$
+declare atual numeric; novo numeric;
+begin
+  select quantidade into atual from public.stock_items where id = new.item_id for update;
+  if not found then raise exception 'Item de estoque não encontrado'; end if;
+  if new.tipo <> 'Ajuste' and coalesce(new.quantidade, 0) <= 0 then raise exception 'Informe uma quantidade maior que zero'; end if;
+  novo := case new.tipo when 'Entrada' then atual + new.quantidade
+                        when 'Saída'   then atual - new.quantidade
+                        else new.quantidade end;
+  if novo < 0 then raise exception 'Estoque insuficiente: há apenas % disponível', trim_scale(atual); end if;
+  new.saldo_antes := atual;
+  new.saldo_apos  := novo;
+  perform set_config('bv.estoque', '1', true);
+  update public.stock_items
+     set quantidade = novo,
+         custo = case when new.tipo = 'Entrada' and new.custo is not null then new.custo else custo end
+   where id = new.item_id;
+  perform set_config('bv.estoque', '0', true);
+  return new;
+end $$;
+drop trigger if exists bv_movimentar_estoque on public.stock_moves;
+create trigger bv_movimentar_estoque before insert on public.stock_moves
+  for each row execute function public.bv_movimentar_estoque();
+
+-- O histórico não pode ser alterado nem apagado (só some junto com o item excluído)
+create or replace function public.bv_travar_movimento() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'DELETE' and pg_trigger_depth() > 1 then return old; end if;
+  raise exception 'O histórico do estoque não pode ser alterado. Para corrigir, faça um ajuste de inventário.';
+end $$;
+drop trigger if exists bv_travar_movimento on public.stock_moves;
+create trigger bv_travar_movimento before update or delete on public.stock_moves
+  for each row execute function public.bv_travar_movimento();
+
+-- A quantidade do item só muda por movimentação; item com saldo não pode ser excluído
+create or replace function public.bv_travar_item_estoque() returns trigger
+language plpgsql as $$
+begin
+  if tg_op = 'INSERT' then new.quantidade := 0; return new; end if;
+  if tg_op = 'DELETE' then
+    if old.quantidade > 0 then raise exception 'Item com saldo não pode ser excluído. Faça antes um ajuste de inventário para zero.'; end if;
+    return old;
+  end if;
+  if new.quantidade is distinct from old.quantidade and coalesce(current_setting('bv.estoque', true), '0') <> '1' then
+    raise exception 'A quantidade só muda por entrada, saída ou ajuste de inventário';
+  end if;
+  return new;
+end $$;
+drop trigger if exists bv_travar_item_estoque on public.stock_items;
+create trigger bv_travar_item_estoque before insert or update or delete on public.stock_items
+  for each row execute function public.bv_travar_item_estoque();
+
 -- ---------- Confirmação automática dos logins internos ----------
 create or replace function public.bv_autoconfirmar() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -302,7 +401,7 @@ create trigger bv_autoconfirmar before insert on auth.users
 do $$
 declare t text;
 begin
-  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config','quotes'] loop
+  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config','quotes','stock_items','stock_moves'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
       execute format('alter publication supabase_realtime add table public.%I', t);
     end if;

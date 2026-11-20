@@ -24,6 +24,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - Cada conta mostra o próprio saldo (entradas − saídas), alimentado pelas movimentações do Financeiro.
 - **Alerta de teto de gastos:** pelo regimento, o síndico pode gastar por mês até **5 salários mínimos**. O alerta considera as saídas da **Conta Principal** no mês atual.
 - **Salário mínimo:** alterado no **Financeiro**, pelo link discreto ⚙ *Salário mínimo* no fim da tela. O valor fica salvo no banco e o teto (5x) do Dashboard é recalculado na hora, em todos os aparelhos. Essa informação não aparece no PDF. Fica verde, amarelo (a partir de 80%) ou vermelho (acima do teto).
+- **Alerta de estoque:** quando algum material está com estoque baixo ou zerado, aparece um aviso amarelo com os itens. Tocando nele, abre o **Estoque** já filtrado.
 - **Relatório por torre:** quantidade de chamados por torre. Clicando na torre, aparecem os chamados e os lançamentos financeiros dela.
 
 ### Financeiro
@@ -54,13 +55,28 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - **Filtros:** busca por serviço ou empresa, por status e por local.
 - **Exportar PDF:** gera a tabela com os 3 orçamentos de cada cotação, o aprovado, quem aprovou e a justificativa, respeitando os filtros.
 
+### Estoque
+- O menu **Estoque** (abaixo de Orçamentos) controla as peças e materiais de reposição (lâmpadas, cloro, fita isolante, sifões etc.).
+- **Novo Material:** nome, categoria (ou *Outra*), código opcional, unidade (un, peça, caixa, metro, litro, kg...), onde fica guardado, **estoque mínimo**, quantidade atual e custo unitário opcional. Não deixa cadastrar dois materiais com o mesmo nome.
+- **Entrada / Saída / Ajuste:** a quantidade nunca é digitada direto. Cada mudança é uma movimentação registrada:
+  - **Entrada:** compra ou reposição. Pode informar fornecedor, nota fiscal e custo unitário (o custo do material é atualizado).
+  - **Saída:** retirada para uso. Informa onde foi usado (torre/setor), o chamado de manutenção (opcional) e quem retirou. Não deixa retirar mais do que o saldo.
+  - **Ajuste de inventário:** depois de contar o estoque, informa a quantidade real. O motivo é obrigatório.
+  - Antes de registrar, o sistema mostra como fica o saldo.
+- **Situação:** *Em dia* (verde), *Estoque baixo* (amarelo, quando chega ao mínimo) ou *Sem estoque* (vermelho).
+- **Histórico:** tocando no material, aparecem os dados e todas as movimentações (data, tipo, quantidade, saldo, detalhes e quem registrou). O histórico não pode ser alterado nem apagado; erros se corrigem com um ajuste.
+- **Excluir:** só com saldo zero (faça antes um ajuste para zero). O histórico do material é apagado junto, mas a exclusão fica nos logs.
+- **Resumo e filtros:** total de materiais, quantos estão baixos ou zerados e o valor estimado em estoque. Busca por nome, código ou local, e filtros por situação e categoria.
+- **PDF:** *Exportar PDF* gera a lista do estoque (respeitando os filtros); no histórico, o botão *PDF* gera as movimentações do material.
+- As regras do saldo também estão no banco: mesmo que alguém tente mudar a quantidade por fora, o Supabase não aceita.
+
 ### Gestão de Usuários
 - Cadastro de usuários com função: Síndico, Subsíndico, Conselho Fiscal ou Administrativo.
 - Exclusão de usuários. O `admin` (Principal) e o próprio usuário logado não podem ser excluídos.
 - **Alterar Minha Senha** (pede a senha atual).
 
 ### Exportar PDF
-- **Financeiro**, **Manutenção & Torres** e **Fornecedores & Contratos** têm o botão **Exportar PDF**.
+- **Financeiro**, **Manutenção & Torres**, **Fornecedores & Contratos**, **Orçamentos** e **Estoque** têm o botão **Exportar PDF**.
 - O PDF sai em A4 deitado, com título, resumo, tabela completa, número das páginas e data/hora/usuário que gerou.
   - **Financeiro:** todas as movimentações, o saldo de cada conta e o total de entradas e de saídas.
   - **Manutenção:** os chamados conforme a pesquisa e os filtros da tela, com o total por status.
@@ -68,7 +84,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - O PDF é gerado no próprio aparelho, sem serviço externo. No celular, é salvo em Downloads/Arquivos.
 
 ### Banco & Logs
-- **Fazer backup do banco:** baixa um arquivo `.json` com todos os dados do Supabase (movimentações, fornecedores, manutenções, orçamentos, usuários e logs). As senhas não entram no backup.
+- **Fazer backup do banco:** baixa um arquivo `.json` com todos os dados do Supabase (movimentações, fornecedores, manutenções, orçamentos, estoque, usuários e logs). As senhas não entram no backup.
 - **Zerar sistema:** pede confirmação e a **senha do usuário admin** (conferida no banco). Apaga todos os dados e usuários; só o `admin` permanece, com a senha inicial. Depois volta para a tela de login.
 - Últimos 50 registros de atividade: logins, cadastros, edições, exclusões, backups.
 
@@ -161,6 +177,7 @@ Abra o site e entre com `admin` e a senha inicial. Esse primeiro login cria o ad
 | *Banco não preparado* | Execute o `supabase.sql` no SQL Editor. |
 | *Login por e-mail desativado* / *Login não confirmado* | Revise o passo **2**. |
 | *Sem conexão com a internet* | Verifique a internet. Se o Supabase estiver pausado, clique em **Restore project**. |
+| *As tabelas do estoque ainda não existem no banco* | Execute o `supabase.sql` atualizado no SQL Editor (pode rodar de novo; não apaga dados). |
 | Versão nova não aparece | Aguarde o ✅ em **Actions** e recarregue com **Ctrl+F5**. |
 
 ---
