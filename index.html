@@ -76,6 +76,10 @@
         #dp-bg{position:fixed;inset:0;z-index:69;background:rgba(2,6,23,.55);display:none}
         /* ===== listas de seleção próprias do sistema (iguais no computador e no celular) ===== */
         select.sel-nativo{display:none!important}
+        .mov-tipo{border-color:#334155;background:#0f172a;color:#94a3b8}
+        .mov-tipo.on[data-tipo="Entrada"]{background:rgba(16,185,129,.18);border-color:#10b981;color:#34d399}
+        .mov-tipo.on[data-tipo="Saída"]{background:rgba(245,158,11,.18);border-color:#f59e0b;color:#fbbf24}
+        .mov-tipo.on[data-tipo="Ajuste"]{background:rgba(59,130,246,.18);border-color:#3b82f6;color:#93c5fd}
         .sel-btn{display:flex!important;align-items:center;justify-content:space-between;gap:8px;text-align:left;cursor:pointer;min-width:0}
         .sel-btn > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .sel-btn svg{width:16px;height:16px;flex-shrink:0;color:#94a3b8;transition:transform .15s}
@@ -167,6 +171,7 @@
                 <button onclick="switchTab('maintenance')" id="btn-maintenance" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-screwdriver-wrench w-5"></i><span>Manutenção & Torres</span></button>
                 <button onclick="switchTab('suppliers')" id="btn-suppliers" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-handshake w-5"></i><span>Fornecedores & Contratos</span></button>
                 <button onclick="switchTab('quotes')" id="btn-quotes" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-file-invoice-dollar w-5"></i><span>Orçamentos</span></button>
+                <button onclick="switchTab('stock')" id="btn-stock" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-boxes-stacked w-5"></i><span>Estoque</span></button>
                 <button onclick="switchTab('users')" id="btn-users" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-users-gear w-5"></i><span>Gestão de Usuários</span></button>
                 <button onclick="switchTab('database')" id="btn-database" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-database w-5"></i><span>Banco & Logs</span></button>
             </aside>
@@ -188,6 +193,14 @@
                             <p id="budget-alert-desc" class="text-xs opacity-90">As despesas do mês estão dentro do limite de 5 salários mínimos.</p>
                         </div>
                     </div>
+
+                    <button type="button" id="dash-stock-alert" onclick="verEstoqueBaixo()" class="hidden w-full text-left p-4 rounded-xl border flex items-center space-x-3 bg-amber-500/10 border-amber-500/30 text-amber-400 hover:border-amber-400">
+                        <i class="fa-solid fa-boxes-stacked text-xl"></i>
+                        <div class="min-w-0">
+                            <h4 id="dash-stock-title" class="font-bold text-sm"></h4>
+                            <p id="dash-stock-desc" class="text-xs opacity-90 break-words"></p>
+                        </div>
+                    </button>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-6">
                         <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl">
@@ -428,6 +441,40 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="quotes-container"></div>
                 </div>
 
+                <!-- ESTOQUE (peças e materiais de reposição) -->
+                <div id="tab-stock" class="hidden space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold">Estoque de Materiais</h3>
+                            <p class="text-xs text-slate-400 mt-1">Cadastre as peças e materiais de reposição e registre cada entrada e saída. O saldo é calculado automaticamente.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="exportarEstoquePDF(this)" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-file-pdf mr-1 text-rose-400"></i> Exportar PDF</button>
+                            <button onclick="openModal('modal-stock-item')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i> Novo Material</button>
+                        </div>
+                    </div>
+                    <div id="stock-aviso" class="hidden p-4 rounded-xl border bg-amber-500/10 border-amber-500/30 text-amber-400 text-sm"></div>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl"><p class="text-xs text-slate-400">Materiais cadastrados</p><h4 id="st-count" class="text-xl font-bold text-blue-400 mt-1">0</h4></div>
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl"><p class="text-xs text-slate-400">Estoque baixo (repor)</p><h4 id="st-baixo" class="text-xl font-bold text-amber-400 mt-1">0</h4></div>
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl"><p class="text-xs text-slate-400">Sem estoque</p><h4 id="st-zerado" class="text-xl font-bold text-rose-400 mt-1">0</h4></div>
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl"><p class="text-xs text-slate-400">Valor estimado em estoque</p><h4 id="st-valor" class="text-xl font-bold text-emerald-400 mt-1">R$ 0,00</h4></div>
+                    </div>
+                    <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex flex-col md:flex-row gap-3 md:items-center">
+                        <input type="text" id="stock-busca" oninput="renderStock()" placeholder="Buscar por nome, código ou local de guarda..." class="w-full md:flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <select id="stock-filtro-sit" onchange="renderStock()" class="min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
+                                <option value="TODOS">Todas as situações</option>
+                                <option value="BAIXO">Estoque baixo / sem estoque</option>
+                                <option value="ZERADO">Sem estoque</option>
+                                <option value="OK">Em dia</option>
+                            </select>
+                            <select id="stock-filtro-cat" onchange="renderStock()" class="min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"><option value="TODOS">Todas as categorias</option></select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="stock-container"></div>
+                </div>
+
                 <!-- USUÁRIOS -->
                 <div id="tab-users" class="hidden space-y-6">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -575,6 +622,116 @@
         </div>
     </div>
     <datalist id="lista-fornecedores"></datalist>
+
+    <!-- ESTOQUE: cadastro do material -->
+    <div id="modal-stock-item" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-2xl">
+            <h4 id="stock-item-title" class="text-lg font-bold mb-4">Novo Material</h4>
+            <form id="form-stock-item" onsubmit="salvarItemEstoque(event)" class="space-y-4" autocomplete="off">
+                <input type="hidden" id="si-id">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2"><label class="campo-label" for="si-nome">Nome do material / peça</label>
+                        <input type="text" id="si-nome" required placeholder="Ex.: Lâmpada LED 9W bivolt" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div><label class="campo-label" for="si-categoria">Categoria</label>
+                        <select id="si-categoria" onchange="document.getElementById('si-categoria-outra').classList.toggle('hidden', this.value !== 'OUTRA')" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                            <option value="">Selecione...</option>
+                            <option value="Elétrica">Elétrica</option>
+                            <option value="Hidráulica">Hidráulica</option>
+                            <option value="Iluminação">Iluminação</option>
+                            <option value="Limpeza">Limpeza</option>
+                            <option value="Pintura">Pintura</option>
+                            <option value="Jardinagem">Jardinagem</option>
+                            <option value="Piscina">Piscina</option>
+                            <option value="Ferragens">Ferragens</option>
+                            <option value="Ferramentas">Ferramentas</option>
+                            <option value="EPI / Segurança">EPI / Segurança</option>
+                            <option value="Escritório">Escritório</option>
+                            <option value="OUTRA">Outra (digitar...)</option>
+                        </select>
+                        <input type="text" id="si-categoria-outra" placeholder="Nome da categoria" class="hidden mt-2 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div><label class="campo-label" for="si-codigo">Código / referência (opcional)</label>
+                        <input type="text" id="si-codigo" placeholder="Ex.: LED-9W" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div><label class="campo-label" for="si-unidade">Unidade de medida</label>
+                        <select id="si-unidade" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                            <option value="un">Unidade (un)</option>
+                            <option value="pç">Peça (pç)</option>
+                            <option value="cx">Caixa (cx)</option>
+                            <option value="pct">Pacote (pct)</option>
+                            <option value="kit">Kit</option>
+                            <option value="par">Par</option>
+                            <option value="m">Metro (m)</option>
+                            <option value="rolo">Rolo</option>
+                            <option value="L">Litro (L)</option>
+                            <option value="galão">Galão</option>
+                            <option value="kg">Quilo (kg)</option>
+                        </select></div>
+                    <div><label class="campo-label" for="si-local">Onde fica guardado</label>
+                        <input type="text" id="si-local" list="lista-locais-guarda" placeholder="Ex.: Almoxarifado, Casa de máquinas" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div><label class="campo-label" for="si-minimo">Estoque mínimo <span class="text-slate-500">(avisa para repor)</span></label>
+                        <input type="number" id="si-minimo" min="0" step="any" inputmode="decimal" placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div id="si-qtd-box"><label class="campo-label" for="si-qtd">Quantidade atual (estoque inicial)</label>
+                        <input type="number" id="si-qtd" min="0" step="any" inputmode="decimal" placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div><label class="campo-label" for="si-custo">Custo unitário (R$, opcional)</label>
+                        <input type="number" id="si-custo" min="0" step="0.01" inputmode="decimal" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div class="sm:col-span-2"><label class="campo-label" for="si-obs">Observações</label>
+                        <input type="text" id="si-obs" placeholder="Marca, modelo, onde é usado..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                </div>
+                <p id="si-qtd-aviso" class="hidden text-xs text-slate-400"><i class="fa-solid fa-circle-info mr-1"></i>A quantidade não é editada aqui: use <strong>Entrada</strong>, <strong>Saída</strong> ou <strong>Ajuste de inventário</strong>, para ficar registrado no histórico.</p>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-stock-item')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 rounded-lg text-sm">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <datalist id="lista-locais-guarda"></datalist>
+
+    <!-- ESTOQUE: entrada / saída / ajuste -->
+    <div id="modal-stock-mov" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-lg">
+            <h4 class="text-lg font-bold mb-1">Movimentar estoque</h4>
+            <p id="mov-item-info" class="text-sm text-slate-300 mb-4"></p>
+            <form id="form-stock-mov" onsubmit="salvarMovimento(event)" class="space-y-4" autocomplete="off">
+                <input type="hidden" id="mov-item"><input type="hidden" id="mov-tipo" value="Entrada">
+                <div class="grid grid-cols-3 gap-2" id="mov-tipos">
+                    <button type="button" data-tipo="Entrada" onclick="tipoMovimento('Entrada')" class="mov-tipo rounded-lg border px-2 py-2.5 text-sm font-semibold"><i class="fa-solid fa-arrow-down mr-1"></i>Entrada</button>
+                    <button type="button" data-tipo="Saída" onclick="tipoMovimento('Saída')" class="mov-tipo rounded-lg border px-2 py-2.5 text-sm font-semibold"><i class="fa-solid fa-arrow-up mr-1"></i>Saída</button>
+                    <button type="button" data-tipo="Ajuste" onclick="tipoMovimento('Ajuste')" class="mov-tipo rounded-lg border px-2 py-2.5 text-sm font-semibold"><i class="fa-solid fa-clipboard-check mr-1"></i>Ajuste</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label class="campo-label" for="mov-qtd" id="mov-qtd-label">Quantidade que entrou</label>
+                        <input type="number" id="mov-qtd" required min="0" step="any" inputmode="decimal" oninput="previaMovimento()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div><label class="campo-label">Data</label><input type="hidden" id="mov-data" data-dp data-obrig><button type="button" class="dp-btn" data-for="mov-data" onclick="abrirCal('mov-data',this)" aria-label="Escolher data"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></button></div>
+                    <div class="mov-saida sm:col-span-2"><label class="campo-label" for="mov-setor">Usado em (local / setor)</label>
+                        <select id="mov-setor" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></select></div>
+                    <div class="mov-saida sm:col-span-2"><label class="campo-label" for="mov-manut">Chamado de manutenção (opcional)</label>
+                        <select id="mov-manut" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"><option value="">Nenhum</option></select></div>
+                    <div class="mov-entrada sm:col-span-2"><label class="campo-label" for="mov-fornecedor">Fornecedor / loja (opcional)</label>
+                        <input type="text" id="mov-fornecedor" list="lista-fornecedores" placeholder="Ex.: Casa do Eletricista" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div class="mov-entrada"><label class="campo-label" for="mov-doc">Nota fiscal / recibo (opcional)</label>
+                        <input type="text" id="mov-doc" placeholder="Nº da nota" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div class="mov-entrada"><label class="campo-label" for="mov-custo">Custo unitário (R$, opcional)</label>
+                        <input type="number" id="mov-custo" min="0" step="0.01" inputmode="decimal" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                    <div class="sm:col-span-2"><label class="campo-label" for="mov-obs" id="mov-obs-label">Observação</label>
+                        <input type="text" id="mov-obs" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                </div>
+                <p id="mov-previa" class="text-sm text-slate-300"></p>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-stock-mov')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 rounded-lg text-sm text-white">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ESTOQUE: histórico do material -->
+    <div id="modal-stock-hist" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-4xl space-y-4">
+            <h4 id="stock-hist-title" class="text-lg font-bold text-blue-400 border-b border-slate-700 pb-2"></h4>
+            <div id="stock-hist-content" class="space-y-3 text-sm text-slate-300 break-words"></div>
+            <div class="flex flex-wrap justify-end gap-2 pt-2" id="stock-hist-acoes"></div>
+        </div>
+    </div>
 
     <!-- detalhe / comparação / aprovação -->
     <div id="modal-quote-detail" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
@@ -1007,7 +1164,7 @@
         function iniciarTempoReal() {
             pararTempoReal();
             canal = sb.channel('bv-' + Date.now());
-            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config', 'quotes'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
+            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config', 'quotes', 'stock_items', 'stock_moves'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
             canal.subscribe();
             pollTimer = setInterval(() => { if (!document.hidden) agendarRecarga(); }, 30000);
         }
@@ -1022,7 +1179,7 @@
         }
         function switchTab(tab) {
             fecharCal();
-            ['dashboard', 'finance', 'maintenance', 'suppliers', 'quotes', 'users', 'database'].forEach(t => {
+            ['dashboard', 'finance', 'maintenance', 'suppliers', 'quotes', 'stock', 'users', 'database'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
                 document.getElementById(`btn-${t}`).classList.remove('bg-blue-600', 'text-white');
                 document.getElementById(`btn-${t}`).classList.add('text-slate-300', 'hover:bg-slate-700/50');
@@ -1059,6 +1216,13 @@
                 document.getElementById('quote-data').value = today();
                 document.getElementById('quote-categoria-outra').classList.add('hidden');
                 montarLinhasOrcamento([]);
+            } else if (id === 'modal-stock-item') {
+                document.getElementById('stock-item-title').innerText = 'Novo Material';
+                document.getElementById('form-stock-item').reset();
+                document.getElementById('si-id').value = '';
+                document.getElementById('si-categoria-outra').classList.add('hidden');
+                document.getElementById('si-qtd-box').classList.remove('hidden');
+                document.getElementById('si-qtd-aviso').classList.add('hidden');
             } else if (id === 'modal-salario') {
                 document.getElementById('salario-valor').value = (SALARIO_MINIMO || SALARIO_PADRAO).toFixed(2); previaTeto();
             } else if (id === 'modal-zerar') {
@@ -1238,6 +1402,7 @@
                 try {
                     /* orçamentos em paralelo; se a tabela ainda não existir, o resto do sistema continua funcionando */
                     const pQuotes = sb.from('quotes').select('*').order('id', { ascending: false }).then(r => r, e => ({ error: e }));
+                    const pStock = sb.from('stock_items').select('*').order('nome').then(r => r, e => ({ error: e }));
                     const [fin, sup, users, maint, logs] = await Promise.all([
                         q(sb.from('transactions').select('*').order('date', { ascending: false }).order('id', { ascending: false })),
                         q(sb.from('suppliers').select('*').order('name')),
@@ -1256,6 +1421,7 @@
                     globalMaintenance = maint.map(m => ({ ...m, dueDate: m.due_date }));
                     if (!users.some(u => u.id === sessionUid)) { showToast('Seu acesso foi removido.', true); encerrarSessao(); return; }
                     carregarCotacoes(resQuotes);
+                    carregarEstoque(await pStock);
                     renderAll(logs);
                 } catch (err) { console.error(err); showToast(errMsg(err), true); }
                 finally { carregando = null; }
@@ -1342,6 +1508,10 @@
 
             /* orçamentos */
             renderQuotes();
+
+            /* estoque */
+            renderStock();
+            if (!document.getElementById('modal-stock-hist').classList.contains('hidden') && histItemId) verHistorico(histItemId, true);
 
             /* logs */
             let logsHtml = '';
@@ -1826,6 +1996,7 @@
         function preencherLocais() {
             const base = document.getElementById('maint-tower').innerHTML;
             document.getElementById('quote-local').innerHTML = base;
+            document.getElementById('mov-setor').innerHTML = base;
             const filtro = document.getElementById('quote-filtro-local');
             filtro.innerHTML = '<option value="TODOS">Todos os locais</option>' + base.replace(/ selected(="[^"]*")?/g, '');
             filtro.value = 'TODOS';
@@ -2043,6 +2214,303 @@
         }
 
 
+        /* ---------- estoque de materiais ---------- */
+        let globalStock = [], stockOk = true, histItemId = null, histMovs = [];
+        const fmtQtd = n => (Number(n) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+        const qtdItem = i => `${fmtQtd(i.quantidade)} ${i.unidade || 'un'}`;
+        /* situação: sem estoque (zero), baixo (no mínimo ou abaixo) ou em dia */
+        const sitEstoque = i => Number(i.quantidade) <= 0 ? 'ZERADO' : (Number(i.minimo) > 0 && Number(i.quantidade) <= Number(i.minimo) ? 'BAIXO' : 'OK');
+        const SIT_EST = { ZERADO: ['Sem estoque', 'bg-rose-500/20 text-rose-400'], BAIXO: ['Estoque baixo', 'bg-amber-500/20 text-amber-400'], OK: ['Em dia', 'bg-emerald-500/20 text-emerald-400'] };
+        function carregarEstoque(res) {
+            try {
+                if (res.error) throw res.error;
+                globalStock = (res.data || []).map(i => ({ ...i, quantidade: Number(i.quantidade) || 0, minimo: Number(i.minimo) || 0, custo: i.custo == null ? null : Number(i.custo) })); stockOk = true;
+            } catch (e) { console.warn('estoque', e); globalStock = []; stockOk = false; }
+        }
+        function estoqueFiltrado() {
+            const b = document.getElementById('stock-busca').value.trim().toLowerCase(), st = document.getElementById('stock-filtro-sit').value, cat = document.getElementById('stock-filtro-cat').value;
+            return globalStock.filter(i => {
+                const s = sitEstoque(i);
+                if (st === 'BAIXO' && s === 'OK') return false;
+                if ((st === 'ZERADO' || st === 'OK') && s !== st) return false;
+                if (cat !== 'TODOS' && (i.categoria || 'Sem categoria') !== cat) return false;
+                return !b || [i.nome, i.codigo, i.local_guarda, i.categoria].some(v => (v || '').toLowerCase().includes(b));
+            });
+        }
+        function renderStock() {
+            const aviso = document.getElementById('stock-aviso');
+            aviso.classList.toggle('hidden', stockOk);
+            if (!stockOk) aviso.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> As tabelas do estoque ainda não existem no banco. Execute o <strong>supabase.sql</strong> atualizado no SQL Editor do Supabase.';
+            const baixos = globalStock.filter(i => sitEstoque(i) !== 'OK');
+            document.getElementById('st-count').innerText = globalStock.length;
+            document.getElementById('st-baixo').innerText = globalStock.filter(i => sitEstoque(i) === 'BAIXO').length;
+            document.getElementById('st-zerado').innerText = globalStock.filter(i => sitEstoque(i) === 'ZERADO').length;
+            document.getElementById('st-valor').innerText = brl(globalStock.reduce((a, i) => a + i.quantidade * (i.custo || 0), 0));
+            /* listas: categorias usadas e locais de guarda já digitados */
+            const fc = document.getElementById('stock-filtro-cat'), atual = fc.value || 'TODOS';
+            const cats = [...new Set(globalStock.map(i => i.categoria || 'Sem categoria'))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            const novoHtml = '<option value="TODOS">Todas as categorias</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+            if (fc.innerHTML !== novoHtml) { fc.innerHTML = novoHtml; fc.value = cats.includes(atual) ? atual : 'TODOS'; }
+            document.getElementById('lista-locais-guarda').innerHTML = [...new Set(globalStock.map(i => i.local_guarda).filter(Boolean))].map(l => `<option value="${esc(l)}">`).join('');
+            /* alerta no dashboard */
+            const al = document.getElementById('dash-stock-alert');
+            al.classList.toggle('hidden', !baixos.length);
+            if (baixos.length) {
+                document.getElementById('dash-stock-title').innerText = `Estoque: ${baixos.length} ${baixos.length === 1 ? 'material precisa' : 'materiais precisam'} de reposição`;
+                document.getElementById('dash-stock-desc').innerText = baixos.slice(0, 5).map(i => `${i.nome} (${qtdItem(i)})`).join(' · ') + (baixos.length > 5 ? ` · e mais ${baixos.length - 5}` : '') + ' — toque para ver';
+            }
+            let h = '';
+            estoqueFiltrado().forEach(i => {
+                const s = sitEstoque(i), [rot, cor] = SIT_EST[s];
+                const pct = i.minimo > 0 ? Math.min(100, i.quantidade / (i.minimo * 2) * 100) : 100;
+                h += `<div onclick="verHistorico(${i.id})" class="bg-slate-800 border ${s === 'OK' ? 'border-slate-700' : s === 'BAIXO' ? 'border-amber-500/40' : 'border-rose-500/40'} p-5 rounded-xl space-y-3 cursor-pointer hover:border-blue-500 transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start gap-2 mb-2">
+                            <span class="text-xs text-blue-400 font-semibold"><i class="fa-solid fa-tag mr-1"></i>${esc(i.categoria || 'Sem categoria')}</span>
+                            <span class="text-xs ${cor} px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap">${rot}</span>
+                        </div>
+                        <h4 class="font-bold text-slate-100 break-words">${esc(i.nome)}</h4>
+                        <p class="text-xs text-slate-400 mt-1 break-words">${i.codigo ? 'Cód. ' + esc(i.codigo) + ' · ' : ''}<i class="fa-solid fa-warehouse mr-1"></i>${esc(i.local_guarda || 'Local não informado')}</p>
+                    </div>
+                    <div class="space-y-1.5">
+                        <div class="flex items-end justify-between gap-2">
+                            <p class="text-2xl font-bold ${s === 'OK' ? 'text-slate-100' : s === 'BAIXO' ? 'text-amber-400' : 'text-rose-400'}">${fmtQtd(i.quantidade)} <span class="text-sm font-medium text-slate-400">${esc(i.unidade || 'un')}</span></p>
+                            <p class="text-xs text-slate-400 text-right">mínimo: ${fmtQtd(i.minimo)}${i.custo ? `<br>${brl(i.custo)} / ${esc(i.unidade || 'un')}` : ''}</p>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-slate-700"><div class="h-1.5 rounded-full ${s === 'OK' ? 'bg-emerald-500' : s === 'BAIXO' ? 'bg-amber-500' : 'bg-rose-500'}" style="width:${s === 'ZERADO' ? 0 : pct}%"></div></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button onclick="abrirMovimento(${i.id}, 'Entrada', event)" class="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-2 rounded-lg text-sm font-semibold"><i class="fa-solid fa-plus mr-1"></i>Entrada</button>
+                        <button onclick="abrirMovimento(${i.id}, 'Saída', event)" class="bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-slate-900 px-3 py-2 rounded-lg text-sm font-semibold"><i class="fa-solid fa-minus mr-1"></i>Saída</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('stock-container').innerHTML = h || `<div class="md:col-span-2 xl:col-span-3 bg-slate-800 border border-slate-700 p-8 rounded-xl text-center text-slate-500">${globalStock.length ? 'Nenhum material encontrado com esse filtro.' : 'Nenhum material cadastrado. Use <strong>Novo Material</strong> para começar.'}</div>`;
+        }
+        function verEstoqueBaixo() {
+            switchTab('stock');
+            document.getElementById('stock-busca').value = '';
+            document.getElementById('stock-filtro-cat').value = 'TODOS';
+            document.getElementById('stock-filtro-sit').value = 'BAIXO';
+            renderStock();
+        }
+        function editarItemEstoque(id) {
+            const i = globalStock.find(x => x.id === id); if (!i) return;
+            closeModal('modal-stock-hist');
+            openModal('modal-stock-item');
+            document.getElementById('stock-item-title').innerText = 'Editar Material';
+            document.getElementById('si-id').value = i.id;
+            document.getElementById('si-nome').value = i.nome || '';
+            document.getElementById('si-codigo').value = i.codigo || '';
+            const sc = document.getElementById('si-categoria'), outra = document.getElementById('si-categoria-outra');
+            const naLista = [...sc.options].some(o => o.value === (i.categoria || '') && o.value !== 'OUTRA');
+            sc.value = naLista ? (i.categoria || '') : 'OUTRA'; outra.value = naLista ? '' : (i.categoria || ''); outra.classList.toggle('hidden', naLista);
+            const su = document.getElementById('si-unidade');
+            if (![...su.options].some(o => o.value === i.unidade)) su.insertAdjacentHTML('beforeend', `<option value="${esc(i.unidade)}">${esc(i.unidade)}</option>`);
+            su.value = i.unidade || 'un';
+            document.getElementById('si-local').value = i.local_guarda || '';
+            document.getElementById('si-minimo').value = i.minimo || '';
+            document.getElementById('si-custo').value = i.custo ?? '';
+            document.getElementById('si-obs').value = i.obs || '';
+            document.getElementById('si-qtd-box').classList.add('hidden');
+            document.getElementById('si-qtd-aviso').classList.remove('hidden');
+        }
+        const numCampo = id => { const v = document.getElementById(id).value; return v === '' ? null : Math.round(parseFloat(v) * 1000) / 1000; };
+        async function salvarItemEstoque(e) {
+            e.preventDefault();
+            const form = e.target;
+            await withBusy(form, async () => {
+                const id = document.getElementById('si-id').value;
+                const catSel = document.getElementById('si-categoria').value;
+                const custo = numCampo('si-custo');
+                const data = {
+                    nome: document.getElementById('si-nome').value.trim(),
+                    codigo: document.getElementById('si-codigo').value.trim() || null,
+                    categoria: (catSel === 'OUTRA' ? document.getElementById('si-categoria-outra').value.trim() : catSel) || null,
+                    unidade: document.getElementById('si-unidade').value || 'un',
+                    local_guarda: document.getElementById('si-local').value.trim() || null,
+                    minimo: numCampo('si-minimo') || 0,
+                    custo: custo == null ? null : Math.round(custo * 100) / 100,
+                    obs: document.getElementById('si-obs').value.trim() || null
+                };
+                if (!data.nome) throw { message: 'Informe o nome do material.' };
+                if (catSel === 'OUTRA' && !data.categoria) throw { message: 'Informe o nome da categoria.' };
+                if (data.minimo < 0 || (data.custo != null && data.custo < 0)) throw { message: 'Os valores não podem ser negativos.' };
+                const dup = globalStock.find(x => String(x.id) !== String(id) && x.nome.trim().toLowerCase() === data.nome.toLowerCase());
+                if (dup) throw { message: `Já existe um material chamado "${dup.nome}". Use Entrada nele para somar ao estoque.` };
+                if (id) {
+                    await q(sb.from('stock_items').update(data).eq('id', id));
+                    log('ESTOQUE_EDITAR', `Material #${id} atualizado: ${data.nome}`);
+                    closeModal('modal-stock-item'); showToast('Material atualizado!');
+                } else {
+                    const ini = numCampo('si-qtd') || 0;
+                    if (ini < 0) throw { message: 'A quantidade não pode ser negativa.' };
+                    const novo = await q(sb.from('stock_items').insert({ ...data, created_by: currentUserLoggedIn.name }).select('id').single());
+                    if (ini > 0) await q(sb.from('stock_moves').insert({ item_id: novo.id, tipo: 'Entrada', quantidade: ini, data: today(), custo: data.custo, obs: 'Estoque inicial (cadastro)', usuario: currentUserLoggedIn.name }));
+                    log('ESTOQUE_NOVO', `Material cadastrado: ${data.nome} — estoque inicial ${fmtQtd(ini)} ${data.unidade}`);
+                    closeModal('modal-stock-item'); showToast('Material cadastrado!');
+                }
+                loadAllData();
+            });
+        }
+        async function excluirItemEstoque(id) {
+            const i = globalStock.find(x => x.id === id); if (!i) return;
+            if (i.quantidade > 0) return showToast('Material com saldo não pode ser excluído. Faça antes um Ajuste de inventário para zero.', true);
+            if (!(await confirmBox(`Excluir o material "${i.nome}"? O histórico de movimentações dele também será apagado.`, 'Excluir'))) return;
+            try {
+                await q(sb.from('stock_items').delete().eq('id', id));
+                log('ESTOQUE_EXCLUIR', `Material #${id} excluído: ${i.nome}`);
+                closeModal('modal-stock-hist'); showToast('Material excluído.'); loadAllData();
+            } catch (err) { console.error(err); showToast(errMsg(err), true); }
+        }
+        /* entrada / saída / ajuste de inventário */
+        function abrirMovimento(id, tipo, ev) {
+            if (ev) ev.stopPropagation();
+            const i = globalStock.find(x => x.id === id); if (!i) return;
+            closeModal('modal-stock-hist');
+            document.getElementById('form-stock-mov').reset();
+            document.getElementById('mov-item').value = id;
+            document.getElementById('mov-data').value = today();
+            document.getElementById('mov-setor').value = 'Geral';
+            const abertas = globalMaintenance.filter(m => !concluido(m));
+            document.getElementById('mov-manut').innerHTML = '<option value="">Nenhum</option>' + abertas.map(m => `<option value="${m.id}">#${m.id} — ${esc(m.item)} (${esc(m.tower)})</option>`).join('');
+            document.getElementById('mov-item-info').innerHTML = `<strong>${esc(i.nome)}</strong> — saldo atual: <strong>${qtdItem(i)}</strong>`;
+            if (i.custo) document.getElementById('mov-custo').value = i.custo;
+            tipoMovimento(tipo);
+            fecharCal(); syncDatas();
+            document.getElementById('modal-stock-mov').classList.remove('hidden');
+        }
+        function tipoMovimento(t) {
+            document.getElementById('mov-tipo').value = t;
+            document.querySelectorAll('#mov-tipos .mov-tipo').forEach(b => b.classList.toggle('on', b.dataset.tipo === t));
+            document.querySelectorAll('#modal-stock-mov .mov-saida').forEach(el => el.classList.toggle('hidden', t !== 'Saída'));
+            document.querySelectorAll('#modal-stock-mov .mov-entrada').forEach(el => el.classList.toggle('hidden', t !== 'Entrada'));
+            document.getElementById('mov-qtd-label').innerText = { Entrada: 'Quantidade que entrou', 'Saída': 'Quantidade retirada', Ajuste: 'Quantidade contada (saldo real)' }[t];
+            document.getElementById('mov-obs-label').innerText = t === 'Ajuste' ? 'Motivo do ajuste (obrigatório)' : t === 'Saída' ? 'Retirado por / finalidade' : 'Observação';
+            document.getElementById('mov-obs').placeholder = t === 'Ajuste' ? 'Ex.: contagem mensal, item quebrado, perda' : t === 'Saída' ? 'Ex.: João (zelador) — troca de lâmpadas do hall' : 'Ex.: compra de reposição';
+            document.getElementById('mov-qtd').min = t === 'Ajuste' ? '0' : '0.001';
+            previaMovimento();
+        }
+        function saldoPrevisto() {
+            const i = globalStock.find(x => String(x.id) === document.getElementById('mov-item').value), t = document.getElementById('mov-tipo').value, v = numCampo('mov-qtd');
+            if (!i || v == null || isNaN(v)) return null;
+            return { i, novo: t === 'Entrada' ? i.quantidade + v : t === 'Saída' ? i.quantidade - v : v };
+        }
+        function previaMovimento() {
+            const p = saldoPrevisto(), el = document.getElementById('mov-previa');
+            if (!p) { el.innerHTML = ''; return; }
+            el.innerHTML = p.novo < 0 ? `<span class="text-rose-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Quantidade maior que o saldo (${qtdItem(p.i)}).</span>`
+                : `Saldo após o registro: <strong class="${sitEstoque({ ...p.i, quantidade: p.novo }) === 'OK' ? 'text-emerald-400' : 'text-amber-400'}">${fmtQtd(p.novo)} ${esc(p.i.unidade || 'un')}</strong>`;
+        }
+        async function salvarMovimento(e) {
+            e.preventDefault();
+            const form = e.target;
+            await withBusy(form, async () => {
+                const t = document.getElementById('mov-tipo').value, p = saldoPrevisto(), qtd = numCampo('mov-qtd'), obs = document.getElementById('mov-obs').value.trim();
+                if (!p) throw { message: 'Informe a quantidade.' };
+                if (t !== 'Ajuste' && !(qtd > 0)) throw { message: 'Informe uma quantidade maior que zero.' };
+                if (qtd < 0) throw { message: 'A quantidade não pode ser negativa.' };
+                if (p.novo < 0) throw { message: `Estoque insuficiente: há apenas ${qtdItem(p.i)}.` };
+                if (t === 'Ajuste' && !obs) throw { message: 'Informe o motivo do ajuste.' };
+                const manut = t === 'Saída' ? document.getElementById('mov-manut').value : '';
+                const custo = t === 'Entrada' ? numCampo('mov-custo') : null;
+                const reg = {
+                    item_id: p.i.id, tipo: t, quantidade: qtd, data: document.getElementById('mov-data').value || today(),
+                    setor: t === 'Saída' ? document.getElementById('mov-setor').value : null,
+                    manutencao_id: manut ? Number(manut) : null,
+                    fornecedor: t === 'Entrada' ? (document.getElementById('mov-fornecedor').value.trim() || null) : null,
+                    documento: t === 'Entrada' ? (document.getElementById('mov-doc').value.trim() || null) : null,
+                    custo: custo == null ? null : Math.round(custo * 100) / 100,
+                    obs: obs || null, usuario: currentUserLoggedIn.name
+                };
+                await q(sb.from('stock_moves').insert(reg));
+                const u = p.i.unidade || 'un';
+                log(t === 'Entrada' ? 'ESTOQUE_ENTRADA' : t === 'Saída' ? 'ESTOQUE_SAIDA' : 'ESTOQUE_AJUSTE',
+                    t === 'Ajuste' ? `Ajuste de inventário em ${p.i.nome}: ${fmtQtd(p.i.quantidade)} → ${fmtQtd(qtd)} ${u} (${obs})`
+                        : `${t} de ${fmtQtd(qtd)} ${u} de ${p.i.nome}${reg.setor ? ' — ' + reg.setor : ''}${reg.manutencao_id ? ' — chamado #' + reg.manutencao_id : ''} — saldo ${fmtQtd(p.novo)} ${u}`);
+                closeModal('modal-stock-mov');
+                const novoSit = sitEstoque({ ...p.i, quantidade: p.novo });
+                showToast(novoSit === 'OK' ? `${t === 'Ajuste' ? 'Ajuste' : t} registrada! Saldo: ${fmtQtd(p.novo)} ${u}.`.replace('Ajuste registrada', 'Ajuste registrado') : `Registrado. Atenção: ${p.i.nome} está ${novoSit === 'ZERADO' ? 'sem estoque' : 'com estoque baixo'} (${fmtQtd(p.novo)} ${u}).`, novoSit !== 'OK');
+                loadAllData();
+            });
+        }
+        /* histórico do material (carregado na hora, só dele) */
+        async function verHistorico(id, silencioso) {
+            const i = globalStock.find(x => x.id === id); if (!i) { if (silencioso) closeModal('modal-stock-hist'); return; }
+            histItemId = id;
+            const [rot, cor] = SIT_EST[sitEstoque(i)];
+            document.getElementById('stock-hist-title').innerHTML = `<i class="fa-solid fa-boxes-stacked mr-2"></i>${esc(i.nome)}`;
+            const topo = `<div class="flex flex-wrap items-center gap-x-4 gap-y-1"><span class="text-2xl font-bold text-slate-100">${qtdItem(i)}</span><span class="text-xs ${cor} px-2.5 py-0.5 rounded-full font-semibold">${rot}</span></div>
+                <p><strong>Categoria:</strong> ${esc(i.categoria || '-')} &nbsp;·&nbsp; <strong>Código:</strong> ${esc(i.codigo || '-')} &nbsp;·&nbsp; <strong>Guardado em:</strong> ${esc(i.local_guarda || '-')}</p>
+                <p><strong>Estoque mínimo:</strong> ${fmtQtd(i.minimo)} ${esc(i.unidade || 'un')} &nbsp;·&nbsp; <strong>Custo unitário:</strong> ${i.custo ? brl(i.custo) : '-'} &nbsp;·&nbsp; <strong>Valor em estoque:</strong> ${brl(i.quantidade * (i.custo || 0))}</p>
+                ${i.obs ? `<p><strong>Observações:</strong> ${esc(i.obs)}</p>` : ''}`;
+            const m = document.getElementById('modal-stock-hist');
+            if (!silencioso) {
+                document.getElementById('stock-hist-content').innerHTML = topo + '<p class="text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Carregando histórico...</p>';
+                document.getElementById('stock-hist-acoes').innerHTML = '';
+                fecharCal(); m.classList.remove('hidden');
+            }
+            try { histMovs = await q(sb.from('stock_moves').select('*').eq('item_id', id).order('id', { ascending: false })); }
+            catch (err) { console.error(err); histMovs = []; showToast(errMsg(err), true); }
+            if (histItemId !== id || m.classList.contains('hidden')) return;
+            const corT = { Entrada: 'text-emerald-400', 'Saída': 'text-amber-400', Ajuste: 'text-blue-300' };
+            let t = `<p class="text-sm font-semibold text-slate-200 pt-2">Histórico de movimentações</p><div class="overflow-x-auto"><table class="w-full text-left text-xs border-collapse"><thead><tr class="bg-slate-700/50 text-slate-300 uppercase"><th class="p-2">Data</th><th class="p-2">Tipo</th><th class="p-2 text-right">Qtd</th><th class="p-2 text-right">Saldo</th><th class="p-2">Detalhes</th><th class="p-2">Por</th></tr></thead><tbody class="divide-y divide-slate-700">`;
+            histMovs.forEach(v => {
+                t += `<tr><td class="p-2 whitespace-nowrap">${fmtDate(v.data)}</td><td class="p-2 font-semibold ${corT[v.tipo] || ''}">${esc(v.tipo)}</td>
+                    <td class="p-2 text-right whitespace-nowrap">${v.tipo === 'Entrada' ? '+' : v.tipo === 'Saída' ? '−' : '='}${fmtQtd(v.quantidade)}</td><td class="p-2 text-right whitespace-nowrap">${fmtQtd(v.saldo_apos)}</td>
+                    <td class="p-2 min-w-[180px]">${esc(detalheMov(v))}</td><td class="p-2 whitespace-nowrap">${esc(v.usuario || '-')}</td></tr>`;
+            });
+            if (!histMovs.length) t += `<tr><td colspan="6" class="p-3 text-center text-slate-500">Nenhuma movimentação registrada.</td></tr>`;
+            t += '</tbody></table></div>';
+            document.getElementById('stock-hist-content').innerHTML = topo + t;
+            document.getElementById('stock-hist-acoes').innerHTML = `
+                <button onclick="abrirMovimento(${i.id}, 'Entrada')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm text-white"><i class="fa-solid fa-plus mr-1"></i>Entrada</button>
+                <button onclick="abrirMovimento(${i.id}, 'Saída')" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 rounded-lg text-sm text-slate-900 font-semibold"><i class="fa-solid fa-minus mr-1"></i>Saída</button>
+                <button onclick="abrirMovimento(${i.id}, 'Ajuste')" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm text-blue-300"><i class="fa-solid fa-clipboard-check mr-1"></i>Ajuste de inventário</button>
+                <button onclick="exportarHistoricoPDF(this, ${i.id})" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm text-white"><i class="fa-solid fa-file-pdf mr-1 text-rose-400"></i>PDF</button>
+                <button onclick="editarItemEstoque(${i.id})" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm text-white"><i class="fa-solid fa-pen-to-square mr-1"></i>Editar</button>
+                <button onclick="excluirItemEstoque(${i.id})" class="px-4 py-2 bg-rose-500/20 hover:bg-rose-600 text-rose-400 hover:text-white rounded-lg text-sm"><i class="fa-solid fa-trash mr-1"></i>Excluir</button>
+                <button onclick="closeModal('modal-stock-hist')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm text-white">Fechar</button>`;
+        }
+        function detalheMov(v) {
+            const p = [];
+            if (v.tipo === 'Saída') p.push('Usado em: ' + (v.setor === 'Geral' ? 'Condomínio Geral' : (v.setor || '-')));
+            if (v.manutencao_id) { const mm = globalMaintenance.find(x => x.id === v.manutencao_id); p.push(`Chamado #${v.manutencao_id}${mm ? ' (' + mm.item + ')' : ''}`); }
+            if (v.fornecedor) p.push('Fornecedor: ' + v.fornecedor);
+            if (v.documento) p.push('NF/recibo: ' + v.documento);
+            if (v.tipo === 'Entrada' && v.custo) p.push('Custo: ' + brl(v.custo));
+            if (v.tipo === 'Ajuste') p.push(`Antes: ${fmtQtd(v.saldo_antes)}`);
+            if (v.obs) p.push(v.obs);
+            return p.join(' · ') || '-';
+        }
+        function exportarEstoquePDF(btn) {
+            exportarPDF(btn, () => {
+                const lista = estoqueFiltrado(), st = document.getElementById('stock-filtro-sit'), cat = document.getElementById('stock-filtro-cat').value, b = document.getElementById('stock-busca').value.trim();
+                const filtros = []; if (st.value !== 'TODOS') filtros.push(st.options[st.selectedIndex].text); if (cat !== 'TODOS') filtros.push(cat); if (b) filtros.push(`busca "${b}"`);
+                const n = s => lista.filter(i => sitEstoque(i) === s).length;
+                const blob = gerarPDF({
+                    titulo: 'Relatório de Estoque de Materiais', subtitulo: `${lista.length} material(is)` + (filtros.length ? ` — filtro: ${filtros.join(', ')}` : ' — todos'),
+                    resumo: [`Em dia: ${n('OK')}   |   Estoque baixo: ${n('BAIXO')}   |   Sem estoque: ${n('ZERADO')}   |   Valor estimado: ${brl(lista.reduce((a, i) => a + i.quantidade * (i.custo || 0), 0))}`],
+                    colunas: [{ t: 'Material', w: 22 }, { t: 'Categoria', w: 11 }, { t: 'Guardado em', w: 13 }, { t: 'Saldo', w: 9, align: 'right' }, { t: 'Mínimo', w: 8, align: 'right' }, { t: 'Situação', w: 10 }, { t: 'Custo unit.', w: 9, align: 'right' }, { t: 'Valor total', w: 10, align: 'right' }],
+                    linhas: lista.map(i => [i.nome + (i.codigo ? `\nCód. ${i.codigo}` : ''), i.categoria || '-', i.local_guarda || '-', qtdItem(i), fmtQtd(i.minimo), SIT_EST[sitEstoque(i)][0], i.custo ? brl(i.custo) : '-', i.custo ? brl(i.quantidade * i.custo) : '-'])
+                });
+                return { blob, nome: `estoque-${today()}.pdf`, desc: 'Relatório de estoque' };
+            });
+        }
+        function exportarHistoricoPDF(btn, id) {
+            exportarPDF(btn, () => {
+                const i = globalStock.find(x => x.id === id); if (!i) throw { message: 'Material não encontrado.' };
+                const ent = histMovs.filter(v => v.tipo === 'Entrada').reduce((a, v) => a + Number(v.quantidade), 0), sai = histMovs.filter(v => v.tipo === 'Saída').reduce((a, v) => a + Number(v.quantidade), 0);
+                const blob = gerarPDF({
+                    titulo: `Histórico de Estoque — ${i.nome}`, subtitulo: `${histMovs.length} movimentação(ões) — saldo atual: ${qtdItem(i)}`,
+                    resumo: [`Categoria: ${i.categoria || '-'}   |   Guardado em: ${i.local_guarda || '-'}   |   Mínimo: ${fmtQtd(i.minimo)} ${i.unidade || 'un'}`, `Total de entradas: ${fmtQtd(ent)}   |   Total de saídas: ${fmtQtd(sai)}`],
+                    colunas: [{ t: 'Data', w: 8 }, { t: 'Tipo', w: 8 }, { t: 'Quantidade', w: 9, align: 'right' }, { t: 'Saldo', w: 8, align: 'right' }, { t: 'Detalhes', w: 40 }, { t: 'Registrado por', w: 13 }],
+                    linhas: histMovs.map(v => [fmtDate(v.data), v.tipo, (v.tipo === 'Entrada' ? '+' : v.tipo === 'Saída' ? '-' : '=') + fmtQtd(v.quantidade), fmtQtd(v.saldo_apos), detalheMov(v), v.usuario || '-'])
+                });
+                return { blob, nome: `estoque-historico-${today()}.pdf`, desc: `Histórico de estoque (${i.nome})` };
+            });
+        }
+
         /* ---------- salário mínimo (base do teto de gastos) ---------- */
         function previaTeto() { document.getElementById('salario-previa').innerText = brl((parseFloat(document.getElementById('salario-valor').value) || 0) * MULT_TETO); }
         async function salvarSalario(e) {
@@ -2144,8 +2612,8 @@
         async function backupBanco(btn) {
             if (btn.disabled) return; btn.disabled = true;
             try {
-                const tabelas = ['transactions', 'suppliers', 'maintenance', 'quotes', 'perfis', 'audit_logs', 'config'], dados = {};
-                for (const t of tabelas) { try { dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : 'id')); } catch (e) { if (t !== 'quotes') throw e; } }
+                const tabelas = ['transactions', 'suppliers', 'maintenance', 'quotes', 'stock_items', 'stock_moves', 'perfis', 'audit_logs', 'config'], dados = {};
+                for (const t of tabelas) { try { dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : 'id')); } catch (e) { if (!['quotes', 'stock_items', 'stock_moves'].includes(t)) throw e; } }
                 const arq = { sistema: 'Blue Village Residence', exportadoEm: new Date().toISOString(), exportadoPor: currentUserLoggedIn.username, observacao: 'As senhas não fazem parte do backup.', tabelas: dados };
                 const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(arq, null, 2)], { type: 'application/json' }));
                 a.download = `bluevillage-backup-${today()}.json`; document.body.appendChild(a); a.click();
