@@ -76,6 +76,14 @@
         #dp-bg{position:fixed;inset:0;z-index:69;background:rgba(2,6,23,.55);display:none}
         /* ===== listas de seleção próprias do sistema (iguais no computador e no celular) ===== */
         select.sel-nativo{display:none!important}
+        .perm-chip{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 10px;line-height:1.2;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#94a3b8;font-size:13px;cursor:pointer;user-select:none;text-align:left}
+        .perm-chip i{width:16px;text-align:center;flex-shrink:0}
+        .perm-chip > span:not(.marca){flex:1;text-align:left}
+        .perm-chip.on{border-color:#3b82f6;background:rgba(59,130,246,.15);color:#e2e8f0}
+        .perm-chip .marca{margin-left:auto;width:18px;height:18px;border-radius:5px;border:2px solid #475569;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .perm-chip.on .marca{background:#3b82f6;border-color:#3b82f6}
+        .perm-chip.on .marca::after{content:'';width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+        .perm-chip:disabled{cursor:default;opacity:.85}
         .mov-tipo{border-color:#334155;background:#0f172a;color:#94a3b8}
         .mov-tipo.on[data-tipo="Entrada"]{background:rgba(16,185,129,.18);border-color:#10b981;color:#34d399}
         .mov-tipo.on[data-tipo="Saída"]{background:rgba(245,158,11,.18);border-color:#f59e0b;color:#fbbf24}
@@ -500,6 +508,28 @@
                             <tbody id="user-table-body" class="divide-y divide-slate-700 text-sm"></tbody>
                         </table>
                     </div>
+
+                    <!-- PERMISSÕES DE PERFIL -->
+                    <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center gap-3">
+                            <div>
+                                <h4 class="font-bold text-slate-100"><i class="fa-solid fa-user-shield mr-2 text-blue-400"></i>Permissões de Perfil</h4>
+                                <p class="text-xs text-slate-400 mt-1">Marque as telas que cada função pode acessar. O Síndico e o usuário <strong>admin</strong> sempre têm acesso total.</p>
+                            </div>
+                            <button id="btn-salvar-perm" onclick="salvarPermissoes(this)" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap self-start"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar permissões</button>
+                        </div>
+                        <div id="perm-aviso" class="hidden p-3 rounded-lg border bg-amber-500/10 border-amber-500/30 text-amber-400 text-sm"></div>
+                        <div id="perm-lista" class="grid grid-cols-1 xl:grid-cols-2 gap-4"></div>
+                    </div>
+                </div>
+
+                <!-- SEM ACESSO -->
+                <div id="tab-semacesso" class="hidden">
+                    <div class="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center space-y-2">
+                        <i class="fa-solid fa-lock text-3xl text-slate-500"></i>
+                        <h3 class="text-lg font-bold">Sem telas liberadas</h3>
+                        <p class="text-sm text-slate-400">A sua função ainda não tem acesso a nenhuma tela do sistema. Procure o síndico para liberar o acesso.</p>
+                    </div>
                 </div>
 
                 <!-- LOGS -->
@@ -772,6 +802,29 @@
         </div>
     </div>
 
+    <div id="modal-funcao" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-md">
+            <h4 class="text-lg font-bold mb-1">Alterar função</h4>
+            <p id="funcao-nome" class="text-sm text-slate-300 mb-4"></p>
+            <form id="form-funcao" onsubmit="salvarFuncao(event)" class="space-y-4" autocomplete="off">
+                <input type="hidden" id="funcao-id">
+                <div><label class="campo-label" for="funcao-valor">Função / Cargo</label>
+                    <select id="funcao-valor" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                        <option value="Síndico">Síndico</option>
+                        <option value="Subsíndico">Subsíndico</option>
+                        <option value="Conselho Fiscal">Conselho Fiscal</option>
+                        <option value="Administrativo">Administrativo</option>
+                        <option value="Supervisor">Supervisor</option>
+                    </select></div>
+                <p class="text-xs text-slate-400"><i class="fa-solid fa-circle-info mr-1"></i>As telas que o usuário vê mudam na hora, conforme as permissões da nova função.</p>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-funcao')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 rounded-lg text-sm text-white">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="modal-user" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
         <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-md">
             <h4 class="text-lg font-bold mb-4">Cadastrar Novo Usuário</h4>
@@ -784,6 +837,7 @@
                     <option value="Subsíndico">Subsíndico</option>
                     <option value="Conselho Fiscal">Conselho Fiscal</option>
                     <option value="Administrativo">Administrativo</option>
+                    <option value="Supervisor">Supervisor</option>
                 </select>
                 <div class="flex justify-end space-x-2 pt-2">
                     <button type="button" onclick="closeModal('modal-user')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
@@ -1129,7 +1183,9 @@
                 document.getElementById('app-screen').classList.remove('hidden');
                 document.getElementById('current-user-badge').innerHTML = `<i class="fa-solid fa-user mr-1"></i> ${esc(p.nome)} (${esc(p.funcao)})`;
                 if (justLoggedIn) { log('LOGIN', `Usuário ${p.nome} (${p.funcao}) acessou o sistema.`); justLoggedIn = false; }
-                switchTab('dashboard');
+                carregarPermissoes(await sb.from('permissoes').select('*').then(r => r, e => ({ error: e })));
+                abaAtual = null; aplicarPermissoes();
+                switchTab(primeiraTela());
                 iniciarTempoReal();
                 setBusy(false);
             } catch (err) { console.error(err); sessionUid = null; justLoggedIn = false; await encerrarSessao(); loginErr.textContent = errMsg(err); setBusy(false); }
@@ -1137,7 +1193,7 @@
 
         function showLogin() {
             fecharCal();
-            pararTempoReal(); sessionUid = null; currentUserLoggedIn = null; toggleMenu(false);
+            pararTempoReal(); sessionUid = null; currentUserLoggedIn = null; abaAtual = null; permEdit = null; toggleMenu(false);
             document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
             document.getElementById('app-screen').classList.add('hidden');
             document.getElementById('login').classList.remove('hidden');
@@ -1164,7 +1220,7 @@
         function iniciarTempoReal() {
             pararTempoReal();
             canal = sb.channel('bv-' + Date.now());
-            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config', 'quotes', 'stock_items', 'stock_moves'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
+            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config', 'quotes', 'stock_items', 'stock_moves', 'permissoes'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
             canal.subscribe();
             pollTimer = setInterval(() => { if (!document.hidden) agendarRecarga(); }, 30000);
         }
@@ -1179,6 +1235,14 @@
         }
         function switchTab(tab) {
             fecharCal();
+            if (!podeTela(tab)) tab = primeiraTela();
+            if (permEdit && tab !== abaAtual) { permEdit = null; document.getElementById('btn-salvar-perm').classList.remove('animate-pulse'); }
+            abaAtual = tab;
+            document.getElementById('tab-semacesso').classList.toggle('hidden', tab !== 'semacesso');
+            if (tab === 'semacesso') {
+                TELAS.forEach(t => { document.getElementById(`tab-${t.id}`).classList.add('hidden'); });
+                toggleMenu(false); return;
+            }
             ['dashboard', 'finance', 'maintenance', 'suppliers', 'quotes', 'stock', 'users', 'database'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
                 document.getElementById(`btn-${t}`).classList.remove('bg-blue-600', 'text-white');
@@ -1402,6 +1466,7 @@
                 try {
                     /* orçamentos em paralelo; se a tabela ainda não existir, o resto do sistema continua funcionando */
                     const pQuotes = sb.from('quotes').select('*').order('id', { ascending: false }).then(r => r, e => ({ error: e }));
+                    const pPerm = sb.from('permissoes').select('*').then(r => r, e => ({ error: e }));
                     const pStock = sb.from('stock_items').select('*').order('nome').then(r => r, e => ({ error: e }));
                     const [fin, sup, users, maint, logs] = await Promise.all([
                         q(sb.from('transactions').select('*').order('date', { ascending: false }).order('id', { ascending: false })),
@@ -1420,6 +1485,12 @@
                     mostrarSalario();
                     globalMaintenance = maint.map(m => ({ ...m, dueDate: m.due_date }));
                     if (!users.some(u => u.id === sessionUid)) { showToast('Seu acesso foi removido.', true); encerrarSessao(); return; }
+                    const eu = users.find(u => u.id === sessionUid);
+                    if (eu.funcao !== currentUserLoggedIn.role) {
+                        currentUserLoggedIn.role = eu.funcao;
+                        document.getElementById('current-user-badge').innerHTML = `<i class="fa-solid fa-user mr-1"></i> ${esc(eu.nome)} (${esc(eu.funcao)})`;
+                    }
+                    carregarPermissoes(await pPerm);
                     carregarCotacoes(resQuotes);
                     carregarEstoque(await pStock);
                     renderAll(logs);
@@ -1489,7 +1560,7 @@
             /* usuários */
             let userHtml = '';
             globalUsers.forEach(u => {
-                userHtml += `<tr class="hover:bg-slate-700/30"><td class="p-4 font-medium">${esc(u.nome)}</td><td class="p-4 text-blue-400">${esc(u.usuario)}</td><td class="p-4"><span class="bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-full text-xs whitespace-nowrap">${esc(u.funcao)}</span></td><td class="p-4 text-right whitespace-nowrap">${u.usuario !== 'admin' && u.id !== sessionUid ? `<button onclick="deleteUser('${u.id}')" class="text-rose-400 hover:text-rose-300 text-xs font-medium"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>` : `<span class="text-slate-500 text-xs">${u.usuario === 'admin' ? 'Principal' : 'Você'}</span>`}</td></tr>`;
+                userHtml += `<tr class="hover:bg-slate-700/30"><td class="p-4 font-medium">${esc(u.nome)}</td><td class="p-4 text-blue-400">${esc(u.usuario)}</td><td class="p-4"><span class="bg-blue-500/20 text-blue-300 px-2.5 py-1 rounded-full text-xs whitespace-nowrap">${esc(u.funcao)}</span></td><td class="p-4 text-right whitespace-nowrap">${u.usuario !== 'admin' && u.id !== sessionUid ? `<button onclick="abrirFuncao('${u.id}')" class="text-blue-400 hover:text-blue-300 text-xs font-medium mr-4"><i class="fa-solid fa-user-pen mr-1"></i> Função</button><button onclick="deleteUser('${u.id}')" class="text-rose-400 hover:text-rose-300 text-xs font-medium"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>` : `<span class="text-slate-500 text-xs">${u.usuario === 'admin' ? 'Principal' : 'Você'}</span>`}</td></tr>`;
             });
             document.getElementById('user-table-body').innerHTML = userHtml;
 
@@ -1511,6 +1582,10 @@
 
             /* estoque */
             renderStock();
+
+            /* permissões */
+            renderPermissoes();
+            aplicarPermissoes();
             if (!document.getElementById('modal-stock-hist').classList.contains('hidden') && histItemId) verHistorico(histItemId, true);
 
             /* logs */
@@ -2214,6 +2289,125 @@
         }
 
 
+        /* ---------- permissões de perfil ---------- */
+        const TELAS = [
+            { id: 'dashboard', nome: 'Dashboard & Torres', ico: 'fa-chart-pie' },
+            { id: 'finance', nome: 'Financeiro', ico: 'fa-wallet' },
+            { id: 'maintenance', nome: 'Manutenção & Torres', ico: 'fa-screwdriver-wrench' },
+            { id: 'suppliers', nome: 'Fornecedores & Contratos', ico: 'fa-handshake' },
+            { id: 'quotes', nome: 'Orçamentos', ico: 'fa-file-invoice-dollar' },
+            { id: 'stock', nome: 'Estoque', ico: 'fa-boxes-stacked' },
+            { id: 'users', nome: 'Gestão de Usuários', ico: 'fa-users-gear' },
+            { id: 'database', nome: 'Banco & Logs', ico: 'fa-database' }
+        ];
+        const FUNCOES = ['Síndico', 'Subsíndico', 'Conselho Fiscal', 'Administrativo', 'Supervisor'];
+        let globalPerms = {}, permsOk = true, abaAtual = 'dashboard', permEdit = null;
+        const acessoTotal = () => currentUserLoggedIn && (currentUserLoggedIn.username === 'admin' || currentUserLoggedIn.role === 'Síndico');
+        function carregarPermissoes(res) {
+            try {
+                if (res.error) throw res.error;
+                const p = {}; (res.data || []).forEach(r => { p[r.funcao] = Array.isArray(r.telas) ? r.telas : []; });
+                globalPerms = p; permsOk = true;
+            } catch (e) { console.warn('permissoes', e); globalPerms = {}; permsOk = false; }
+        }
+        /* banco ainda sem a tabela de permissões: mantém o acesso como antes (tudo liberado) */
+        function telasDe(funcao) { return !permsOk || funcao === 'Síndico' ? TELAS.map(t => t.id) : (globalPerms[funcao] || []); }
+        function podeTela(t) {
+            if (t === 'semacesso') return true;
+            if (!currentUserLoggedIn) return false;
+            return acessoTotal() || telasDe(currentUserLoggedIn.role).includes(t);
+        }
+        function primeiraTela() { const t = TELAS.find(x => podeTela(x.id)); return t ? t.id : 'semacesso'; }
+        function aplicarPermissoes() {
+            TELAS.forEach(t => document.getElementById(`btn-${t.id}`).classList.toggle('hidden', !podeTela(t.id)));
+            const al = document.getElementById('dash-stock-alert');
+            if (!podeTela('stock')) al.classList.add('hidden');
+            /* a tela aberta deixou de ser permitida (permissão ou função alterada em outro aparelho) */
+            if (currentUserLoggedIn && abaAtual && !podeTela(abaAtual)) { showToast('Suas permissões foram alteradas.', true); switchTab(primeiraTela()); }
+            else if (currentUserLoggedIn && abaAtual === 'semacesso' && primeiraTela() !== 'semacesso') switchTab(primeiraTela());
+        }
+        function renderPermissoes() {
+            const aviso = document.getElementById('perm-aviso');
+            aviso.classList.toggle('hidden', permsOk);
+            if (!permsOk) aviso.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> A tabela de permissões ainda não existe no banco: por enquanto todos acessam tudo. Execute o <strong>supabase.sql</strong> atualizado no SQL Editor do Supabase.';
+            /* não redesenha enquanto o usuário está marcando (só depois de salvar ou cancelar) */
+            if (permEdit) return;
+            const podeEditar = podeTela('users') && permsOk;
+            document.getElementById('btn-salvar-perm').classList.toggle('hidden', !podeEditar);
+            let h = '';
+            FUNCOES.forEach(f => {
+                const total = f === 'Síndico', telas = telasDe(f), qtd = globalUsers.filter(u => u.funcao === f).length;
+                h += `<div class="bg-slate-900/60 border border-slate-700 rounded-xl p-4 space-y-3" data-funcao="${esc(f)}">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="font-semibold text-slate-100">${esc(f)} <span class="text-xs font-normal text-slate-400">· ${qtd} usuário(s)</span></p>
+                        ${total ? '<span class="text-xs bg-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap"><i class="fa-solid fa-lock mr-1"></i>Acesso total</span>' : `<span class="text-xs text-slate-400 whitespace-nowrap" data-cont>${telas.length} de ${TELAS.length} telas</span>`}
+                    </div>
+                    ${total ? '<p class="text-xs text-slate-400">Acessa todas as telas do sistema (não pode ser alterado).</p>' : `<div class="grid grid-cols-2 gap-2">${TELAS.map(t => `<button type="button" class="perm-chip ${telas.includes(t.id) ? 'on' : ''}" data-tela="${t.id}" ${total || !podeEditar ? 'disabled' : `onclick="marcarPermissao(this)"`}><i class="fa-solid ${t.ico}"></i><span>${t.nome}</span><span class="marca"></span></button>`).join('')}</div>`}
+                </div>`;
+            });
+            document.getElementById('perm-lista').innerHTML = h;
+        }
+        function marcarPermissao(b) {
+            b.classList.toggle('on');
+            permEdit = true;
+            const card = b.closest('[data-funcao]'), n = card.querySelectorAll('.perm-chip.on').length, c = card.querySelector('[data-cont]');
+            if (c) c.textContent = `${n} de ${TELAS.length} telas`;
+            document.getElementById('btn-salvar-perm').classList.add('animate-pulse');
+        }
+        async function salvarPermissoes(btn) {
+            if (btn.disabled) return;
+            const novas = {};
+            document.querySelectorAll('#perm-lista [data-funcao]').forEach(card => {
+                const f = card.dataset.funcao; if (f === 'Síndico') return;
+                novas[f] = TELAS.map(t => t.id).filter(id => card.querySelector(`[data-tela="${id}"]`).classList.contains('on'));
+            });
+            const minha = currentUserLoggedIn.role;
+            if (!acessoTotal() && novas[minha] && !novas[minha].includes('users')
+                && !(await confirmBox(`Você está tirando da sua própria função (${minha}) o acesso à Gestão de Usuários. Depois de salvar, você não poderá mais alterar as permissões. Continuar?`, 'Salvar mesmo assim'))) return;
+            btn.disabled = true;
+            try {
+                const mudou = Object.keys(novas).filter(f => JSON.stringify(novas[f]) !== JSON.stringify(telasDe(f)));
+                if (!mudou.length) { permEdit = null; showToast('Nenhuma alteração para salvar.'); return; }
+                await q(sb.from('permissoes').upsert(mudou.map(f => ({ funcao: f, telas: novas[f], atualizado_por: currentUserLoggedIn.name, atualizado_em: new Date().toISOString() }))));
+                const conf = await q(sb.from('permissoes').select('*'));
+                if (mudou.some(f => { const r = conf.find(x => x.funcao === f); return !r || JSON.stringify(r.telas) !== JSON.stringify(novas[f]); }))
+                    throw { message: 'Você não tem permissão para alterar as permissões de perfil.' };
+                const nome = id => (TELAS.find(t => t.id === id) || {}).nome || id;
+                log('PERMISSOES', mudou.map(f => `${f}: ${novas[f].length ? novas[f].map(nome).join(', ') : 'nenhuma tela'}`).join(' | ') + ` — por ${currentUserLoggedIn.name}`);
+                permEdit = null;
+                showToast('Permissões salvas! Os usuários dessas funções já veem as telas novas.');
+                await loadAllData();
+            } catch (err) { console.error(err); showToast(errMsg(err), true); }
+            finally { btn.disabled = false; btn.classList.remove('animate-pulse'); }
+        }
+        /* alterar a função de um usuário */
+        function abrirFuncao(id) {
+            const u = globalUsers.find(x => x.id === id); if (!u) return;
+            document.getElementById('form-funcao').reset();
+            document.getElementById('funcao-id').value = id;
+            document.getElementById('funcao-nome').innerHTML = `<strong>${esc(u.nome)}</strong> (${esc(u.usuario)}) — função atual: <strong>${esc(u.funcao)}</strong>`;
+            const sel = document.getElementById('funcao-valor');
+            if (![...sel.options].some(o => o.value === u.funcao)) sel.insertAdjacentHTML('beforeend', `<option value="${esc(u.funcao)}">${esc(u.funcao)}</option>`);
+            sel.value = u.funcao;
+            fecharCal(); document.getElementById('modal-funcao').classList.remove('hidden');
+        }
+        async function salvarFuncao(e) {
+            e.preventDefault();
+            const form = e.target;
+            await withBusy(form, async () => {
+                const id = document.getElementById('funcao-id').value, nova = document.getElementById('funcao-valor').value, u = globalUsers.find(x => x.id === id);
+                if (!u) throw { message: 'Usuário não encontrado.' };
+                if (nova === u.funcao) { closeModal('modal-funcao'); return; }
+                await q(sb.from('perfis').update({ funcao: nova }).eq('id', id));
+                const conf = await q(sb.from('perfis').select('funcao').eq('id', id).maybeSingle());
+                if (!conf || conf.funcao !== nova) throw { message: 'Você não tem permissão para alterar a função deste usuário.' };
+                log('ALTERAR_FUNCAO', `Função de ${u.nome} alterada de ${u.funcao} para ${nova} por ${currentUserLoggedIn.name}`);
+                closeModal('modal-funcao');
+                showToast(`Função de ${u.nome} alterada para ${nova}.`);
+                loadAllData();
+            });
+        }
+
         /* ---------- estoque de materiais ---------- */
         let globalStock = [], stockOk = true, histItemId = null, histMovs = [];
         const fmtQtd = n => (Number(n) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 3 });
@@ -2254,7 +2448,7 @@
             document.getElementById('lista-locais-guarda').innerHTML = [...new Set(globalStock.map(i => i.local_guarda).filter(Boolean))].map(l => `<option value="${esc(l)}">`).join('');
             /* alerta no dashboard */
             const al = document.getElementById('dash-stock-alert');
-            al.classList.toggle('hidden', !baixos.length);
+            al.classList.toggle('hidden', !baixos.length || !podeTela('stock'));
             if (baixos.length) {
                 document.getElementById('dash-stock-title').innerText = `Estoque: ${baixos.length} ${baixos.length === 1 ? 'material precisa' : 'materiais precisam'} de reposição`;
                 document.getElementById('dash-stock-desc').innerText = baixos.slice(0, 5).map(i => `${i.nome} (${qtdItem(i)})`).join(' · ') + (baixos.length > 5 ? ` · e mais ${baixos.length - 5}` : '') + ' — toque para ver';
@@ -2612,8 +2806,8 @@
         async function backupBanco(btn) {
             if (btn.disabled) return; btn.disabled = true;
             try {
-                const tabelas = ['transactions', 'suppliers', 'maintenance', 'quotes', 'stock_items', 'stock_moves', 'perfis', 'audit_logs', 'config'], dados = {};
-                for (const t of tabelas) { try { dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : 'id')); } catch (e) { if (!['quotes', 'stock_items', 'stock_moves'].includes(t)) throw e; } }
+                const tabelas = ['transactions', 'suppliers', 'maintenance', 'quotes', 'stock_items', 'stock_moves', 'perfis', 'permissoes', 'audit_logs', 'config'], dados = {};
+                for (const t of tabelas) { try { dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : t === 'permissoes' ? 'funcao' : 'id')); } catch (e) { if (!['quotes', 'stock_items', 'stock_moves', 'permissoes'].includes(t)) throw e; } }
                 const arq = { sistema: 'Blue Village Residence', exportadoEm: new Date().toISOString(), exportadoPor: currentUserLoggedIn.username, observacao: 'As senhas não fazem parte do backup.', tabelas: dados };
                 const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(arq, null, 2)], { type: 'application/json' }));
                 a.download = `bluevillage-backup-${today()}.json`; document.body.appendChild(a); a.click();

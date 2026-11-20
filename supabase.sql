@@ -177,6 +177,40 @@ alter table public.quotes       enable row level security;
 alter table public.stock_items  enable row level security;
 alter table public.stock_moves  enable row level security;
 
+-- ---------- Permissões de perfil ----------
+-- Cada função (cargo) acessa só as telas marcadas em "Permissões de Perfil".
+-- O Síndico e o usuário admin sempre têm acesso total.
+-- Telas: dashboard, finance, maintenance, suppliers, quotes, stock, users, database
+create table if not exists public.permissoes (
+  funcao         text primary key,
+  telas          text[] not null default '{}',
+  atualizado_por text,
+  atualizado_em  timestamptz not null default now()
+);
+alter table public.permissoes enable row level security;
+
+create or replace function public.bv_permissoes_padrao() returns void
+language sql security definer set search_path = public as $$
+  insert into public.permissoes (funcao, telas) values
+    ('Subsíndico',      '{dashboard,finance,maintenance,suppliers,quotes,stock,users,database}'),
+    ('Conselho Fiscal', '{dashboard,finance,maintenance,suppliers,quotes,stock,users,database}'),
+    ('Administrativo',  '{dashboard,finance,maintenance,suppliers,quotes,stock,users,database}'),
+    ('Supervisor',      '{maintenance,suppliers,quotes,stock}')
+  on conflict (funcao) do nothing;
+$$;
+do $$ begin perform public.bv_permissoes_padrao(); end $$;
+revoke execute on function public.bv_permissoes_padrao() from public, anon, authenticated;
+
+create or replace function public.pode(tela text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.perfis p
+     where p.id = auth.uid()
+       and (p.usuario = 'admin' or p.funcao = 'Síndico'
+            or exists (select 1 from public.permissoes x where x.funcao = p.funcao and tela = any (x.telas))));
+$$;
+
+-- remove as regras antigas (todos acessavam tudo)
 drop policy if exists ativos on public.transactions;
 drop policy if exists ativos on public.suppliers;
 drop policy if exists ativos on public.maintenance;
@@ -184,17 +218,34 @@ drop policy if exists ativos on public.config;
 drop policy if exists ativos on public.quotes;
 drop policy if exists ativos on public.stock_items;
 drop policy if exists ativos on public.stock_moves;
-create policy ativos on public.stock_items for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
-create policy ativos on public.stock_moves for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
-create policy ativos on public.quotes for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
-create policy ativos on public.config for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
-create policy ativos on public.transactions for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
-create policy ativos on public.suppliers    for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
-create policy ativos on public.maintenance  for all to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
+do $$
+declare t text;
+begin
+  foreach t in array array['transactions','suppliers','maintenance','config','quotes','stock_items','stock_moves','permissoes'] loop
+    execute format('drop policy if exists ler on public.%I', t);
+    execute format('drop policy if exists gravar on public.%I', t);
+  end loop;
+end $$;
+
+-- ler: telas que mostram os dados | gravar: tela dona dos dados
+create policy ler    on public.transactions for select to authenticated using (public.pode('finance') or public.pode('dashboard'));
+create policy gravar on public.transactions for all    to authenticated using (public.pode('finance')) with check (public.pode('finance'));
+create policy ler    on public.suppliers    for select to authenticated using (public.pode('suppliers') or public.pode('dashboard') or public.pode('quotes'));
+create policy gravar on public.suppliers    for all    to authenticated using (public.pode('suppliers')) with check (public.pode('suppliers'));
+create policy ler    on public.maintenance  for select to authenticated using (public.pode('maintenance') or public.pode('dashboard') or public.pode('stock'));
+create policy gravar on public.maintenance  for all    to authenticated using (public.pode('maintenance')) with check (public.pode('maintenance'));
+create policy gravar on public.quotes       for all    to authenticated using (public.pode('quotes')) with check (public.pode('quotes'));
+create policy ler    on public.stock_items  for select to authenticated using (public.pode('stock') or public.pode('dashboard'));
+create policy gravar on public.stock_items  for all    to authenticated using (public.pode('stock')) with check (public.pode('stock'));
+create policy gravar on public.stock_moves  for all    to authenticated using (public.pode('stock')) with check (public.pode('stock'));
+create policy ler    on public.config       for select to authenticated using (public.eh_ativo());
+create policy gravar on public.config       for all    to authenticated using (public.pode('finance')) with check (public.pode('finance'));
+create policy ler    on public.permissoes   for select to authenticated using (public.eh_ativo());
+create policy gravar on public.permissoes   for all    to authenticated using (public.pode('users')) with check (public.pode('users'));
 
 drop policy if exists logs_ler on public.audit_logs;
 drop policy if exists logs_criar on public.audit_logs;
-create policy logs_ler   on public.audit_logs for select to authenticated using (public.eh_ativo());
+create policy logs_ler   on public.audit_logs for select to authenticated using (public.pode('database'));
 create policy logs_criar on public.audit_logs for insert to authenticated with check (public.eh_ativo());
 
 drop policy if exists perfis_ler on public.perfis;
@@ -202,8 +253,8 @@ drop policy if exists perfis_criar on public.perfis;
 drop policy if exists perfis_alterar on public.perfis;
 drop policy if exists perfis_apagar on public.perfis;
 create policy perfis_ler    on public.perfis for select to authenticated using (public.eh_ativo() or id = auth.uid());
-create policy perfis_criar  on public.perfis for insert to authenticated with check (public.eh_ativo() and usuario <> 'admin');
-create policy perfis_alterar on public.perfis for update to authenticated using (public.eh_ativo()) with check (public.eh_ativo());
+create policy perfis_criar  on public.perfis for insert to authenticated with check (public.pode('users') and usuario <> 'admin');
+create policy perfis_alterar on public.perfis for update to authenticated using (public.pode('users') and usuario <> 'admin' and id <> auth.uid()) with check (public.pode('users') and usuario <> 'admin');
 
 -- ---------- Primeiro acesso do admin ----------
 create or replace function public.precisa_bootstrap() returns boolean
@@ -246,7 +297,7 @@ end $$;
 create or replace function public.excluir_usuario(alvo uuid) returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  if not public.eh_ativo() then raise exception 'Não autorizado'; end if;
+  if not public.pode('users') then raise exception 'Não autorizado'; end if;
   if alvo = auth.uid() then raise exception 'Não é possível excluir o próprio usuário'; end if;
   if exists (select 1 from public.perfis where id = alvo and usuario = 'admin') then
     raise exception 'O usuário principal não pode ser excluído';
@@ -258,7 +309,7 @@ end $$;
 create or replace function public.remover_login_orfao(email_alvo text) returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  if not public.eh_ativo() then raise exception 'Não autorizado'; end if;
+  if not public.pode('users') then raise exception 'Não autorizado'; end if;
   delete from auth.users u where u.email = lower(email_alvo)
     and not exists (select 1 from public.perfis p where p.id = u.id);
 end $$;
@@ -269,11 +320,13 @@ create or replace function public.zerar_sistema(senha text) returns void
 language plpgsql security definer set search_path = public, extensions as $$
 declare h text;
 begin
-  if not public.eh_ativo() then raise exception 'Não autorizado'; end if;
+  if not public.pode('database') then raise exception 'Não autorizado'; end if;
   select encrypted_password into h from auth.users where email = 'admin@bluevillage.app';
   if h is null or h <> extensions.crypt(coalesce(senha, ''), h) then raise exception 'Senha incorreta'; end if;
   truncate table public.transactions, public.suppliers, public.maintenance, public.quotes, public.stock_moves, public.stock_items, public.audit_logs restart identity;
   delete from auth.users where email <> 'admin@bluevillage.app' and email like '%@bluevillage.app';
+  delete from public.permissoes where true;
+  perform public.bv_permissoes_padrao();
   -- encerra as sessões abertas (os aparelhos voltam para a tela de login)
   delete from auth.sessions where true;
   update auth.users set encrypted_password = public.senha_inicial_hash(), updated_at = now()
@@ -401,7 +454,7 @@ create trigger bv_autoconfirmar before insert on auth.users
 do $$
 declare t text;
 begin
-  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config','quotes','stock_items','stock_moves'] loop
+  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config','quotes','stock_items','stock_moves','permissoes'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
       execute format('alter publication supabase_realtime add table public.%I', t);
     end if;

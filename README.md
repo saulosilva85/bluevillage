@@ -24,7 +24,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - Cada conta mostra o próprio saldo (entradas − saídas), alimentado pelas movimentações do Financeiro.
 - **Alerta de teto de gastos:** pelo regimento, o síndico pode gastar por mês até **5 salários mínimos**. O alerta considera as saídas da **Conta Principal** no mês atual.
 - **Salário mínimo:** alterado no **Financeiro**, pelo link discreto ⚙ *Salário mínimo* no fim da tela. O valor fica salvo no banco e o teto (5x) do Dashboard é recalculado na hora, em todos os aparelhos. Essa informação não aparece no PDF. Fica verde, amarelo (a partir de 80%) ou vermelho (acima do teto).
-- **Alerta de estoque:** quando algum material está com estoque baixo ou zerado, aparece um aviso amarelo com os itens. Tocando nele, abre o **Estoque** já filtrado.
+- **Alerta de estoque:** (só para quem tem acesso ao Estoque) quando algum material está com estoque baixo ou zerado, aparece um aviso amarelo com os itens. Tocando nele, abre o **Estoque** já filtrado.
 - **Relatório por torre:** quantidade de chamados por torre. Clicando na torre, aparecem os chamados e os lançamentos financeiros dela.
 
 ### Financeiro
@@ -71,8 +71,18 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - As regras do saldo também estão no banco: mesmo que alguém tente mudar a quantidade por fora, o Supabase não aceita.
 
 ### Gestão de Usuários
-- Cadastro de usuários com função: Síndico, Subsíndico, Conselho Fiscal ou Administrativo.
-- Exclusão de usuários. O `admin` (Principal) e o próprio usuário logado não podem ser excluídos.
+- Cadastro de usuários com função: Síndico, Subsíndico, Conselho Fiscal, Administrativo ou **Supervisor**.
+- **Função:** muda a função de um usuário já cadastrado (as telas que ele vê mudam na hora).
+- Exclusão de usuários. O `admin` (Principal) e o próprio usuário logado não podem ser excluídos nem ter a função alterada.
+
+#### Permissões de Perfil
+- No fim da tela **Gestão de Usuários**, cada função tem a lista das telas do sistema. Toque para marcar ou desmarcar e clique em **Salvar permissões**.
+- O **Síndico** e o usuário **admin** sempre têm acesso total (não dá para tirar).
+- Padrão inicial: Subsíndico, Conselho Fiscal e Administrativo acessam tudo; o **Supervisor** acessa só **Manutenção, Fornecedores, Orçamentos e Estoque** (sem Dashboard, Financeiro, Usuários e Banco & Logs).
+- O menu mostra apenas as telas liberadas, e o usuário entra direto na primeira delas. Se a função não tiver nenhuma tela, aparece o aviso *Sem telas liberadas*.
+- Mudanças valem na hora, também para quem já está com o sistema aberto em outro aparelho.
+- A proteção também está no banco: sem a permissão, o Supabase não entrega nem deixa gravar os dados da tela (ex.: quem não tem Financeiro nem Dashboard não consegue ler as movimentações). Só quem tem **Gestão de Usuários** pode mudar permissões, funções e usuários.
+- Toda alteração fica registrada nos logs.
 - **Alterar Minha Senha** (pede a senha atual).
 
 ### Exportar PDF
@@ -84,8 +94,8 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - O PDF é gerado no próprio aparelho, sem serviço externo. No celular, é salvo em Downloads/Arquivos.
 
 ### Banco & Logs
-- **Fazer backup do banco:** baixa um arquivo `.json` com todos os dados do Supabase (movimentações, fornecedores, manutenções, orçamentos, estoque, usuários e logs). As senhas não entram no backup.
-- **Zerar sistema:** pede confirmação e a **senha do usuário admin** (conferida no banco). Apaga todos os dados e usuários; só o `admin` permanece, com a senha inicial. Depois volta para a tela de login.
+- **Fazer backup do banco:** baixa um arquivo `.json` com todos os dados do Supabase (movimentações, fornecedores, manutenções, orçamentos, estoque, usuários, permissões e logs). As senhas não entram no backup.
+- **Zerar sistema:** pede confirmação e a **senha do usuário admin** (conferida no banco). Apaga todos os dados e usuários; só o `admin` permanece, com a senha inicial, e as permissões voltam ao padrão. Depois volta para a tela de login.
 - Últimos 50 registros de atividade: logins, cadastros, edições, exclusões, backups.
 
 ### Calendário
@@ -178,6 +188,7 @@ Abra o site e entre com `admin` e a senha inicial. Esse primeiro login cria o ad
 | *Login por e-mail desativado* / *Login não confirmado* | Revise o passo **2**. |
 | *Sem conexão com a internet* | Verifique a internet. Se o Supabase estiver pausado, clique em **Restore project**. |
 | *As tabelas do estoque ainda não existem no banco* | Execute o `supabase.sql` atualizado no SQL Editor (pode rodar de novo; não apaga dados). |
+| *A tabela de permissões ainda não existe no banco* | Execute o `supabase.sql` atualizado. Até lá, todos continuam acessando tudo. |
 | Versão nova não aparece | Aguarde o ✅ em **Actions** e recarregue com **Ctrl+F5**. |
 
 ---
