@@ -466,18 +466,12 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="docs-container"></div>
                     </div>
                     <div id="docs-sub-contratos" class="hidden space-y-4">
-                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex flex-col md:flex-row gap-3 md:items-center">
-                            <input type="text" id="ct-busca" oninput="renderContratos()" placeholder="Buscar por empresa, descrição ou arquivo..." class="w-full md:flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
-                            <select id="ct-filtro-empresa" onchange="renderContratos()" class="min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"><option value="TODAS">Todas as empresas</option></select>
-                            <select id="ct-filtro-venc" onchange="renderContratos()" class="min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
-                                <option value="TODOS">Todos os vencimentos</option>
-                                <option value="VENCENDO">Vencidos ou vencendo (30 dias)</option>
-                                <option value="EMDIA">Em dia / sem vencimento</option>
-                            </select>
-                            <button id="btn-novo-contrato" onclick="abrirContrato()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i> Novo Contrato</button>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <p id="ct-espaco" class="text-xs text-slate-400"></p>
+                            <button id="btn-novo-contrato" onclick="document.getElementById('ct-arquivos').click()" class="bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap"><i class="fa-solid fa-upload mr-1"></i> Enviar contrato</button>
                         </div>
-                        <p id="ct-espaco" class="text-xs text-slate-400"></p>
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="ct-container"></div>
+                        <input type="file" id="ct-arquivos" class="hidden" multiple accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,image/jpeg,image/png" onchange="enviarContratos(this)">
+                        <div class="bg-slate-800 border border-slate-700 rounded-xl divide-y divide-slate-700" id="ct-container"></div>
                     </div>
                     <input type="file" id="docs-arquivo" class="hidden" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,image/jpeg,image/png" onchange="arquivoEscolhido(this)">
                 </div>
@@ -685,36 +679,6 @@
         </div>
     </div>
     <datalist id="lista-fornecedores"></datalist>
-
-    <!-- DOCUMENTOS: contrato -->
-    <div id="modal-contrato" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-lg">
-            <h4 id="ct-title" class="text-lg font-bold mb-4">Novo Contrato</h4>
-            <form id="form-contrato" onsubmit="salvarContrato(event)" class="space-y-4" autocomplete="off">
-                <input type="hidden" id="ct-id">
-                <div><label class="campo-label" for="ct-empresa">Empresa</label>
-                    <input type="text" id="ct-empresa" required list="lista-empresas-contrato" placeholder="Ex.: Elevadores Atlas" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
-                <div><label class="campo-label" for="ct-titulo">Descrição do contrato</label>
-                    <input type="text" id="ct-titulo" placeholder="Ex.: Manutenção mensal dos elevadores" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
-                <div><label class="campo-label">Vencimento (opcional)</label><input type="hidden" id="ct-venc" data-dp><button type="button" class="dp-btn" data-for="ct-venc" onclick="abrirCal('ct-venc',this)" aria-label="Escolher data"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></button></div>
-                <div><label class="campo-label" for="ct-obs">Observações</label>
-                    <input type="text" id="ct-obs" placeholder="Valor, aditivos, contato..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
-                <div>
-                    <label class="campo-label">Arquivo do contrato</label>
-                    <input type="file" id="ct-arquivo" class="hidden" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,image/jpeg,image/png" onchange="arquivoContratoEscolhido(this)">
-                    <button type="button" onclick="document.getElementById('ct-arquivo').click()" class="w-full flex items-center gap-3 bg-slate-900 border border-dashed border-slate-600 hover:border-blue-500 rounded-lg p-3 text-left">
-                        <i class="fa-solid fa-paperclip text-blue-400 text-lg shrink-0"></i>
-                        <span id="ct-arquivo-nome" class="text-sm text-slate-300 break-all">Escolher arquivo (PDF, Word ou imagem, até 50 MB)</span>
-                    </button>
-                </div>
-                <div class="flex justify-end space-x-2 pt-2">
-                    <button type="button" onclick="closeModal('modal-contrato')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 rounded-lg text-sm text-white">Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    <datalist id="lista-empresas-contrato"></datalist>
 
     <!-- ESTOQUE: cadastro do material -->
     <div id="modal-stock-item" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
@@ -1551,7 +1515,7 @@
             stock_items: () => sb.from('stock_items').select('*').order('nome'),
             permissoes: () => sb.from('permissoes').select('*'),
             documentos: () => sb.from('documentos').select('*'),
-            contratos: () => sb.from('contratos').select('*').order('empresa').order('id', { ascending: false })
+            contratos: () => sb.from('contratos').select('*').order('id', { ascending: false })
         };
         /* tabelas sem as quais o sistema não funciona (erro aparece para o usuário) */
         const ESSENCIAIS = ['transactions', 'suppliers', 'perfis', 'maintenance', 'audit_logs'];
@@ -2598,7 +2562,7 @@
         }
 
         /* ---------- documentos: abas e contratos ---------- */
-        let docsSub = 'regimento', globalContratos = [], contratosOk = true, ctArquivo = null;
+        let docsSub = 'regimento', globalContratos = [], contratosOk = true;
         function docsAba(sub) {
             docsSub = sub;
             document.querySelectorAll('#docs-abas .docs-aba').forEach(b => b.classList.toggle('on', b.dataset.sub === sub));
@@ -2619,129 +2583,68 @@
                 globalContratos = res.data || []; contratosOk = true;
             } catch (e) { console.warn('contratos', e); globalContratos = []; contratosOk = false; }
         }
-        /* vencimento: vencido, vence em até 30 dias, em dia ou sem data */
-        function sitContrato(c) {
-            if (!c.vencimento) return 'SEM';
-            const dias = Math.round((new Date(c.vencimento + 'T00:00:00') - new Date(today() + 'T00:00:00')) / 86400000);
-            return dias < 0 ? 'VENCIDO' : dias <= 30 ? 'VENCENDO' : 'OK';
-        }
-        const SIT_CT = { VENCIDO: ['Vencido', 'bg-rose-500/20 text-rose-400'], VENCENDO: ['Vence em breve', 'bg-amber-500/20 text-amber-400'], OK: ['Em dia', 'bg-emerald-500/20 text-emerald-400'], SEM: ['Sem vencimento', 'bg-slate-700 text-slate-300'] };
         function renderContratos() {
             docsAba(docsSub);
             const podeEnviar = podeTela('users') && contratosOk;
-            document.getElementById('btn-novo-contrato').classList.toggle('hidden', !podeEnviar);
+            const bt = document.getElementById('btn-novo-contrato');
+            bt.classList.toggle('hidden', !podeEnviar);
+            bt.disabled = !!ctEnviando;
+            bt.innerHTML = ctEnviando ? `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${ctEnviando}` : '<i class="fa-solid fa-upload mr-1"></i> Enviar contrato';
             document.getElementById('ct-qtd').textContent = globalContratos.length ? `(${globalContratos.length})` : '';
-            /* listas de empresas (filtro e sugestões do cadastro) */
-            const emp = [...new Set(globalContratos.map(c => c.empresa))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-            const fe = document.getElementById('ct-filtro-empresa'), atual = fe.value || 'TODAS';
-            const novoHtml = '<option value="TODAS">Todas as empresas</option>' + emp.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join('');
-            if (fe.innerHTML !== novoHtml) { fe.innerHTML = novoHtml; fe.value = emp.includes(atual) ? atual : 'TODAS'; }
-            document.getElementById('lista-empresas-contrato').innerHTML = [...new Set([...emp, ...globalSuppliers.map(s => s.name).filter(Boolean)])].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(e => `<option value="${esc(e)}">`).join('');
             /* espaço usado no Storage (plano gratuito: 1 GB) */
             const usado = Object.values(globalDocs).reduce((a, d) => a + (Number(d.tamanho) || 0), 0) + globalContratos.reduce((a, c) => a + (Number(c.tamanho) || 0), 0);
-            document.getElementById('ct-espaco').innerHTML = `<i class="fa-solid fa-hard-drive mr-1"></i> Espaço usado pelos arquivos: <strong>${tamanhoArq(usado || 0)}</strong> de 1 GB (${(usado / 1073741824 * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%)`;
-            const b = document.getElementById('ct-busca').value.trim().toLowerCase(), fv = document.getElementById('ct-filtro-venc').value, fem = fe.value;
-            const lista = globalContratos.filter(c => {
-                const s = sitContrato(c);
-                if (fem !== 'TODAS' && c.empresa !== fem) return false;
-                if (fv === 'VENCENDO' && !['VENCIDO', 'VENCENDO'].includes(s)) return false;
-                if (fv === 'EMDIA' && !['OK', 'SEM'].includes(s)) return false;
-                return !b || [c.empresa, c.titulo, c.nome, c.obs].some(v => (v || '').toLowerCase().includes(b));
-            });
-            document.getElementById('ct-container').innerHTML = lista.map(c => {
-                const [rot, cor] = SIT_CT[sitContrato(c)];
-                return `<div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col gap-3">
-                    <div class="flex justify-between items-start gap-2">
-                        <div class="min-w-0">
-                            <p class="font-bold text-slate-100 break-words"><i class="fa-solid fa-building mr-1 text-blue-400"></i>${esc(c.empresa)}</p>
-                            ${c.titulo ? `<p class="text-sm text-slate-300 mt-0.5 break-words">${esc(c.titulo)}</p>` : ''}
-                        </div>
-                        <span class="text-xs ${cor} px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap">${rot}</span>
+            document.getElementById('ct-espaco').innerHTML = `<i class="fa-solid fa-hard-drive mr-1"></i> Espaço usado pelos arquivos: <strong>${tamanhoArq(usado || 0)}</strong> de 1 GB`;
+            const lista = [...globalContratos].sort((a, b) => String(b.enviado_em).localeCompare(String(a.enviado_em)) || b.id - a.id);
+            document.getElementById('ct-container').innerHTML = lista.map(c => `
+                <div class="flex items-center gap-3 p-4 min-w-0">
+                    <i class="fa-solid ${icoArq(c.nome)} text-2xl shrink-0"></i>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-semibold text-slate-200 break-all">${esc(c.nome)}</p>
+                        <p class="text-xs text-slate-400 mt-0.5">${c.tamanho ? tamanhoArq(c.tamanho) + ' · ' : ''}enviado ${c.enviado_por ? 'por ' + esc(c.enviado_por) + ' ' : ''}em ${new Date(c.enviado_em).toLocaleDateString('pt-BR')}</p>
                     </div>
-                    <div class="bg-slate-900/60 border border-slate-700 rounded-lg p-3 flex items-center gap-3 min-w-0">
-                        <i class="fa-solid ${icoArq(c.nome)} text-2xl shrink-0"></i>
-                        <div class="min-w-0">
-                            <p class="text-sm font-semibold text-slate-200 break-all">${esc(c.nome)}</p>
-                            <p class="text-xs text-slate-400 mt-0.5">${c.vencimento ? 'Vence em ' + fmtDate(c.vencimento) + ' · ' : ''}${c.tamanho ? tamanhoArq(c.tamanho) + ' · ' : ''}enviado ${c.enviado_por ? 'por ' + esc(c.enviado_por) + ' ' : ''}em ${new Date(c.enviado_em).toLocaleDateString('pt-BR')}</p>
-                            ${c.obs ? `<p class="text-xs text-slate-400 mt-1 break-words">${esc(c.obs)}</p>` : ''}
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2 mt-auto">
-                        <button onclick="baixarContrato(${c.id}, this)" class="flex-1 min-w-[120px] bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold"><i class="fa-solid fa-download mr-1"></i> Baixar</button>
-                        ${podeEnviar ? `<button onclick="abrirContrato(${c.id})" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-lg text-sm" title="Editar"><i class="fa-solid fa-pen-to-square mr-1"></i> Editar</button>
-                        <button onclick="excluirContrato(${c.id})" class="bg-rose-500/20 hover:bg-rose-600 text-rose-400 hover:text-white px-4 py-2.5 rounded-lg text-sm" title="Excluir"><i class="fa-solid fa-trash"></i></button>` : ''}
-                    </div>
-                </div>`;
-            }).join('') || `<div class="lg:col-span-2 bg-slate-800 border border-slate-700 p-8 rounded-xl text-center text-slate-500">${globalContratos.length ? 'Nenhum contrato encontrado com esse filtro.' : 'Nenhum contrato enviado ainda.' + (podeEnviar ? ' Use <strong>Novo Contrato</strong> para começar.' : '')}</div>`;
+                    <button onclick="baixarContrato(${c.id}, this)" class="shrink-0 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold" title="Baixar"><i class="fa-solid fa-download mr-1"></i> Baixar</button>
+                    ${podeEnviar ? `<button onclick="excluirContrato(${c.id})" class="shrink-0 bg-rose-500/20 hover:bg-rose-600 text-rose-400 hover:text-white px-3 py-2.5 rounded-lg text-sm" title="Excluir"><i class="fa-solid fa-trash"></i></button>` : ''}
+                </div>`).join('') || `<div class="p-8 text-center text-slate-500">Nenhum contrato enviado ainda.${podeEnviar ? ' Use <strong>Enviar contrato</strong> para subir o primeiro.' : ''}</div>`;
         }
-        function abrirContrato(id) {
-            const c = id ? globalContratos.find(x => x.id === id) : null; if (id && !c) return;
-            document.getElementById('form-contrato').reset();
-            ctArquivo = null;
-            document.getElementById('ct-title').innerText = c ? 'Editar Contrato' : 'Novo Contrato';
-            document.getElementById('ct-id').value = c ? c.id : '';
-            document.getElementById('ct-empresa').value = c ? c.empresa : '';
-            document.getElementById('ct-titulo').value = c ? c.titulo || '' : '';
-            document.getElementById('ct-venc').value = c ? c.vencimento || '' : '';
-            document.getElementById('ct-obs').value = c ? c.obs || '' : '';
-            document.getElementById('ct-arquivo-nome').innerHTML = c ? `Arquivo atual: <strong>${esc(c.nome)}</strong> <span class="text-slate-500">— toque para trocar</span>` : 'Escolher arquivo (PDF, Word ou imagem, até 50 MB)';
-            fecharCal(); syncDatas();
-            document.getElementById('modal-contrato').classList.remove('hidden');
-        }
-        function arquivoContratoEscolhido(inp) {
-            const f = inp.files && inp.files[0]; inp.value = '';
-            if (!f) return;
-            const erro = validarArquivo(f); if (erro) return showToast(erro, true);
-            ctArquivo = f;
-            document.getElementById('ct-arquivo-nome').innerHTML = `<strong>${esc(f.name)}</strong> <span class="text-slate-500">(${tamanhoArq(f.size)})</span>`;
-        }
-        async function salvarContrato(e) {
-            e.preventDefault();
-            const form = e.target;
-            await withBusy(form, async () => {
-                const id = document.getElementById('ct-id').value, atual = id ? globalContratos.find(x => String(x.id) === id) : null;
-                const dados = {
-                    empresa: document.getElementById('ct-empresa').value.trim(),
-                    titulo: document.getElementById('ct-titulo').value.trim() || null,
-                    vencimento: document.getElementById('ct-venc').value || null,
-                    obs: document.getElementById('ct-obs').value.trim() || null
-                };
-                if (!dados.empresa) throw { message: 'Informe a empresa.' };
-                if (!atual && !ctArquivo) throw { message: 'Escolha o arquivo do contrato.' };
-                let novo = null;
-                if (ctArquivo) {
-                    novo = caminhoArquivo('contratos', ctArquivo.name);
-                    await q(sb.storage.from(DOC_BUCKET).upload(novo, ctArquivo, { contentType: ctArquivo.type || 'application/octet-stream', upsert: false }));
-                    Object.assign(dados, { caminho: novo, nome: ctArquivo.name, tamanho: ctArquivo.size, tipo_arquivo: ctArquivo.type || null, enviado_por: currentUserLoggedIn.name, enviado_em: new Date().toISOString() });
-                }
+        /* envio direto: escolhe um ou vários arquivos e já sobe */
+        let ctEnviando = '';
+        async function enviarContratos(inp) {
+            const arqs = [...(inp.files || [])]; inp.value = '';
+            if (!arqs.length || ctEnviando) return;
+            const erros = arqs.map(f => [f, validarArquivo(f)]).filter(([, e]) => e);
+            if (erros.length) return showToast(erros.length === 1 ? `${erros[0][0].name}: ${erros[0][1]}` : `${erros.length} arquivos não aceitos. Envie PDF, Word ou imagem de até 50 MB.`, true);
+            let ok = 0;
+            for (const [i, f] of arqs.entries()) {
+                ctEnviando = arqs.length > 1 ? `Enviando ${i + 1} de ${arqs.length}...` : 'Enviando...'; renderContratos();
+                const caminho = caminhoArquivo('contratos', f.name);
                 try {
-                    if (atual) await q(sb.from('contratos').update(dados).eq('id', atual.id));
-                    else await q(sb.from('contratos').insert(dados));
-                } catch (err) { if (novo) sb.storage.from(DOC_BUCKET).remove([novo]).catch(() => { }); throw err; }
-                if (atual && novo && atual.caminho !== novo) sb.storage.from(DOC_BUCKET).remove([atual.caminho]).catch(() => { });
-                log(atual ? 'CONTRATO_EDITAR' : 'CONTRATO_ENVIAR', `${atual ? 'Contrato atualizado' : 'Contrato enviado'}: ${dados.empresa}${dados.titulo ? ' — ' + dados.titulo : ''}${novo ? ` (arquivo "${dados.nome}", ${tamanhoArq(dados.tamanho)})` : ''} por ${currentUserLoggedIn.name}`);
-                ctArquivo = null;
-                closeModal('modal-contrato');
-                showToast(atual ? 'Contrato atualizado!' : 'Contrato enviado com sucesso!');
-                await loadAllData(['contratos', 'audit_logs']);
-            });
+                    await q(sb.storage.from(DOC_BUCKET).upload(caminho, f, { contentType: f.type || 'application/octet-stream', upsert: false }));
+                    try { await q(sb.from('contratos').insert({ caminho, nome: f.name, tamanho: f.size, tipo_arquivo: f.type || null, enviado_por: currentUserLoggedIn.name, enviado_em: new Date().toISOString() })); }
+                    catch (err) { sb.storage.from(DOC_BUCKET).remove([caminho]).catch(() => { }); throw err; }
+                    log('CONTRATO_ENVIAR', `Contrato enviado: "${f.name}" (${tamanhoArq(f.size)}) por ${currentUserLoggedIn.name}`);
+                    ok++;
+                } catch (err) { console.error(err); showToast(`${f.name}: ${errMsg(err)}`, true); }
+            }
+            ctEnviando = '';
+            if (ok) showToast(ok === 1 ? 'Contrato enviado com sucesso!' : `${ok} contratos enviados com sucesso!`);
+            await loadAllData(['contratos', 'audit_logs']); renderContratos();
         }
         async function baixarContrato(id, btn) {
             const c = globalContratos.find(x => x.id === id); if (!c || btn.disabled) return;
             btn.disabled = true; const html = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Baixando...';
             try {
                 baixarPDF(await q(sb.storage.from(DOC_BUCKET).download(c.caminho)), c.nome);
-                log('CONTRATO_BAIXAR', `Contrato de ${c.empresa} ("${c.nome}") baixado por ${currentUserLoggedIn.name}`);
+                log('CONTRATO_BAIXAR', `Contrato "${c.nome}" baixado por ${currentUserLoggedIn.name}`);
             } catch (err) { console.error(err); showToast(errMsg(err), true); }
             finally { btn.disabled = false; btn.innerHTML = html; }
         }
         async function excluirContrato(id) {
             const c = globalContratos.find(x => x.id === id); if (!c) return;
-            if (!(await confirmBox(`Excluir o contrato de ${c.empresa}${c.titulo ? ' (' + c.titulo + ')' : ''}? O arquivo "${c.nome}" será apagado.`, 'Excluir'))) return;
+            if (!(await confirmBox(`Excluir o contrato "${c.nome}"? O arquivo será apagado.`, 'Excluir'))) return;
             try {
                 await q(sb.from('contratos').delete().eq('id', id));
                 sb.storage.from(DOC_BUCKET).remove([c.caminho]).catch(() => { });
-                log('CONTRATO_EXCLUIR', `Contrato excluído: ${c.empresa}${c.titulo ? ' — ' + c.titulo : ''} ("${c.nome}") por ${currentUserLoggedIn.name}`);
+                log('CONTRATO_EXCLUIR', `Contrato excluído: "${c.nome}" por ${currentUserLoggedIn.name}`);
                 showToast('Contrato excluído.');
                 await loadAllData(['contratos', 'audit_logs']);
             } catch (err) { console.error(err); showToast(errMsg(err), true); }
