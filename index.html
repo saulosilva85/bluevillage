@@ -179,6 +179,7 @@
                 <button onclick="switchTab('maintenance')" id="btn-maintenance" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-screwdriver-wrench w-5"></i><span>Manutenção & Torres</span></button>
                 <button onclick="switchTab('suppliers')" id="btn-suppliers" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-handshake w-5"></i><span>Fornecedores & Contratos</span></button>
                 <button onclick="switchTab('quotes')" id="btn-quotes" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-file-invoice-dollar w-5"></i><span>Orçamentos</span></button>
+                <button onclick="switchTab('docs')" id="btn-docs" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-scale-balanced w-5"></i><span>Regimento & Convenção</span></button>
                 <button onclick="switchTab('stock')" id="btn-stock" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-boxes-stacked w-5"></i><span>Estoque</span></button>
                 <button onclick="switchTab('users')" id="btn-users" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-users-gear w-5"></i><span>Gestão de Usuários</span></button>
                 <button onclick="switchTab('database')" id="btn-database" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-database w-5"></i><span>Banco & Logs</span></button>
@@ -447,6 +448,17 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="quotes-container"></div>
+                </div>
+
+                <!-- REGIMENTO & CONVENÇÃO -->
+                <div id="tab-docs" class="hidden space-y-6">
+                    <div>
+                        <h3 class="text-xl font-bold">Regimento & Convenção</h3>
+                        <p class="text-xs text-slate-400 mt-1">Arquivos oficiais do condomínio. Toque em <strong>Baixar</strong> para consultar a versão atual.</p>
+                    </div>
+                    <div id="docs-aviso" class="hidden p-4 rounded-xl border bg-amber-500/10 border-amber-500/30 text-amber-400 text-sm"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="docs-container"></div>
+                    <input type="file" id="docs-arquivo" class="hidden" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,image/jpeg,image/png" onchange="arquivoEscolhido(this)">
                 </div>
 
                 <!-- ESTOQUE (peças e materiais de reposição) -->
@@ -1065,6 +1077,9 @@
             if (/chamado conclu[íi]do/i.test(m)) return m.replace(/^Erro: /, '');
             if (/cota[çc][ãa]o (aprovada|cancelada)/i.test(m)) return m.replace(/^Erro: /, '');
             if (/s[ãa]o necess[áa]rios 3 or[çc]amentos/i.test(m)) return 'São necessários 3 orçamentos para aprovar.';
+            if (/bucket not found/i.test(m)) return 'A pasta de arquivos não existe no Supabase. Execute o supabase.sql atualizado.';
+            if (/exceeded the maximum allowed size|payload too large|entity too large/i.test(m)) return 'Arquivo maior que o limite permitido (50 MB).';
+            if (/object not found|not_found/i.test(m + c)) return 'Arquivo não encontrado no servidor. Envie-o novamente.';
             if (/usu[áa]rio principal/i.test(m)) return 'O usuário principal (admin) não pode ser excluído.';
             if (c === '42501' || /row-level security|n[ãa]o autorizado|permission/i.test(m)) return 'Sem permissão para esta ação.';
             if (/password should be|weak/i.test(m)) return 'Senha fraca: use no mínimo 6 caracteres.';
@@ -1220,7 +1235,7 @@
         function iniciarTempoReal() {
             pararTempoReal();
             canal = sb.channel('bv-' + Date.now());
-            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config', 'quotes', 'stock_items', 'stock_moves', 'permissoes'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
+            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config', 'quotes', 'stock_items', 'stock_moves', 'permissoes', 'documentos'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
             canal.subscribe();
             pollTimer = setInterval(() => { if (!document.hidden) agendarRecarga(); }, 30000);
         }
@@ -1243,7 +1258,7 @@
                 TELAS.forEach(t => { document.getElementById(`tab-${t.id}`).classList.add('hidden'); });
                 toggleMenu(false); return;
             }
-            ['dashboard', 'finance', 'maintenance', 'suppliers', 'quotes', 'stock', 'users', 'database'].forEach(t => {
+            ['dashboard', 'finance', 'maintenance', 'suppliers', 'quotes', 'docs', 'stock', 'users', 'database'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
                 document.getElementById(`btn-${t}`).classList.remove('bg-blue-600', 'text-white');
                 document.getElementById(`btn-${t}`).classList.add('text-slate-300', 'hover:bg-slate-700/50');
@@ -1466,6 +1481,7 @@
                 try {
                     /* orçamentos em paralelo; se a tabela ainda não existir, o resto do sistema continua funcionando */
                     const pQuotes = sb.from('quotes').select('*').order('id', { ascending: false }).then(r => r, e => ({ error: e }));
+                    const pDocs = sb.from('documentos').select('*').then(r => r, e => ({ error: e }));
                     const pPerm = sb.from('permissoes').select('*').then(r => r, e => ({ error: e }));
                     const pStock = sb.from('stock_items').select('*').order('nome').then(r => r, e => ({ error: e }));
                     const [fin, sup, users, maint, logs] = await Promise.all([
@@ -1493,6 +1509,7 @@
                     carregarPermissoes(await pPerm);
                     carregarCotacoes(resQuotes);
                     carregarEstoque(await pStock);
+                    carregarDocumentos(await pDocs);
                     renderAll(logs);
                 } catch (err) { console.error(err); showToast(errMsg(err), true); }
                 finally { carregando = null; }
@@ -1582,6 +1599,9 @@
 
             /* estoque */
             renderStock();
+
+            /* regimento & convenção */
+            renderDocumentos();
 
             /* permissões */
             renderPermissoes();
@@ -2296,6 +2316,7 @@
             { id: 'maintenance', nome: 'Manutenção & Torres', ico: 'fa-screwdriver-wrench' },
             { id: 'suppliers', nome: 'Fornecedores & Contratos', ico: 'fa-handshake' },
             { id: 'quotes', nome: 'Orçamentos', ico: 'fa-file-invoice-dollar' },
+            { id: 'docs', nome: 'Regimento & Convenção', ico: 'fa-scale-balanced' },
             { id: 'stock', nome: 'Estoque', ico: 'fa-boxes-stacked' },
             { id: 'users', nome: 'Gestão de Usuários', ico: 'fa-users-gear' },
             { id: 'database', nome: 'Banco & Logs', ico: 'fa-database' }
@@ -2406,6 +2427,89 @@
                 showToast(`Função de ${u.nome} alterada para ${nova}.`);
                 loadAllData();
             });
+        }
+
+        /* ---------- regimento interno e convenção (arquivos no Supabase Storage) ---------- */
+        const DOCS = [
+            { tipo: 'regimento', nome: 'Regimento Interno', desc: 'Regras de convivência e uso das áreas comuns.', ico: 'fa-book' },
+            { tipo: 'convencao', nome: 'Convenção do Condomínio', desc: 'Documento que rege direitos, deveres e a administração do condomínio.', ico: 'fa-scale-balanced' }
+        ];
+        const DOC_BUCKET = 'documentos', DOC_MAX = 50 * 1024 * 1024, DOC_EXT = ['pdf', 'doc', 'docx', 'odt', 'jpg', 'jpeg', 'png'];
+        let globalDocs = {}, docsOk = true, docEnvio = null;
+        const tamanhoArq = n => n >= 1048576 ? (n / 1048576).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+        const icoArq = nome => { const e = (nome.split('.').pop() || '').toLowerCase(); return e === 'pdf' ? 'fa-file-pdf text-rose-400' : ['doc', 'docx', 'odt'].includes(e) ? 'fa-file-word text-blue-400' : 'fa-file-image text-emerald-400'; };
+        function carregarDocumentos(res) {
+            try {
+                if (res.error) throw res.error;
+                const d = {}; (res.data || []).forEach(r => { d[r.tipo] = r; }); globalDocs = d; docsOk = true;
+            } catch (e) { console.warn('documentos', e); globalDocs = {}; docsOk = false; }
+        }
+        function renderDocumentos() {
+            const aviso = document.getElementById('docs-aviso');
+            aviso.classList.toggle('hidden', docsOk);
+            if (!docsOk) aviso.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> A área de arquivos ainda não existe no banco. Execute o <strong>supabase.sql</strong> atualizado no SQL Editor do Supabase.';
+            const podeEnviar = podeTela('users') && docsOk;
+            document.getElementById('docs-container').innerHTML = DOCS.map(d => {
+                const a = globalDocs[d.tipo], envia = docEnvio === d.tipo;
+                return `<div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col gap-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-11 h-11 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center shrink-0"><i class="fa-solid ${d.ico} text-lg"></i></div>
+                        <div class="min-w-0">
+                            <h4 class="font-bold text-slate-100">${d.nome}</h4>
+                            <p class="text-xs text-slate-400 mt-0.5">${d.desc}</p>
+                        </div>
+                    </div>
+                    ${a ? `<div class="bg-slate-900/60 border border-slate-700 rounded-lg p-3 flex items-center gap-3 min-w-0">
+                            <i class="fa-solid ${icoArq(a.nome)} text-2xl shrink-0"></i>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-slate-200 break-all">${esc(a.nome)}</p>
+                                <p class="text-xs text-slate-400 mt-0.5">${a.tamanho ? tamanhoArq(a.tamanho) + ' · ' : ''}enviado ${a.enviado_por ? 'por ' + esc(a.enviado_por) + ' ' : ''}em ${new Date(a.enviado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                            </div>
+                        </div>`
+                        : `<div class="bg-slate-900/40 border border-dashed border-slate-600 rounded-lg p-4 text-center text-sm text-slate-500"><i class="fa-regular fa-folder-open mr-1"></i> Nenhum arquivo enviado ainda.</div>`}
+                    <div class="flex flex-wrap gap-2 mt-auto">
+                        <button onclick="baixarDocumento('${d.tipo}', this)" ${a ? '' : 'disabled'} class="flex-1 min-w-[140px] bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg text-sm font-semibold"><i class="fa-solid fa-download mr-1"></i> Baixar</button>
+                        ${podeEnviar ? `<button onclick="escolherDocumento('${d.tipo}')" ${docEnvio ? 'disabled' : ''} class="flex-1 min-w-[140px] bg-slate-700 hover:bg-slate-600 disabled:opacity-60 text-white px-4 py-2.5 rounded-lg text-sm font-medium">${envia ? '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Enviando...' : `<i class="fa-solid fa-upload mr-1"></i> ${a ? 'Substituir arquivo' : 'Enviar arquivo'}`}</button>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        function escolherDocumento(tipo) {
+            if (docEnvio) return;
+            const inp = document.getElementById('docs-arquivo');
+            inp.value = ''; inp.dataset.tipo = tipo; inp.click();
+        }
+        async function arquivoEscolhido(inp) {
+            const f = inp.files && inp.files[0], tipo = inp.dataset.tipo; inp.value = '';
+            if (!f || !tipo || docEnvio) return;
+            const d = DOCS.find(x => x.tipo === tipo), ext = (f.name.split('.').pop() || '').toLowerCase(), atual = globalDocs[tipo];
+            if (!DOC_EXT.includes(ext)) return showToast('Formato não aceito. Envie PDF, Word (DOC/DOCX/ODT) ou imagem (JPG/PNG).', true);
+            if (f.size > DOC_MAX) return showToast(`Arquivo muito grande (${tamanhoArq(f.size)}). O limite é 50 MB.`, true);
+            if (!f.size) return showToast('O arquivo está vazio.', true);
+            if (atual && !(await confirmBox(`Substituir o ${d.nome} atual ("${atual.nome}") por "${f.name}"? O arquivo anterior será apagado.`, 'Substituir'))) return;
+            docEnvio = tipo; renderDocumentos();
+            const limpo = f.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '_').slice(-80);
+            const caminho = `${tipo}/${Date.now()}-${limpo}`;
+            try {
+                await q(sb.storage.from(DOC_BUCKET).upload(caminho, f, { contentType: f.type || 'application/octet-stream', upsert: false }));
+                try {
+                    await q(sb.from('documentos').upsert({ tipo, caminho, nome: f.name, tamanho: f.size, tipo_arquivo: f.type || null, enviado_por: currentUserLoggedIn.name, enviado_em: new Date().toISOString() }));
+                } catch (e) { sb.storage.from(DOC_BUCKET).remove([caminho]).catch(() => { }); throw e; }
+                if (atual && atual.caminho !== caminho) sb.storage.from(DOC_BUCKET).remove([atual.caminho]).catch(() => { });
+                log('DOCUMENTO_ENVIAR', `${d.nome}: ${atual ? 'substituído' : 'enviado'} o arquivo "${f.name}" (${tamanhoArq(f.size)}) por ${currentUserLoggedIn.name}`);
+                showToast(`${d.nome} ${atual ? 'substituído' : 'enviado'} com sucesso!`);
+            } catch (err) { console.error(err); showToast(errMsg(err), true); }
+            finally { docEnvio = null; await loadAllData(); renderDocumentos(); }
+        }
+        async function baixarDocumento(tipo, btn) {
+            const a = globalDocs[tipo], d = DOCS.find(x => x.tipo === tipo); if (!a || btn.disabled) return;
+            btn.disabled = true; const html = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Baixando...';
+            try {
+                const blob = await q(sb.storage.from(DOC_BUCKET).download(a.caminho));
+                baixarPDF(blob, a.nome);
+                log('DOCUMENTO_BAIXAR', `${d.nome} ("${a.nome}") baixado por ${currentUserLoggedIn.name}`);
+            } catch (err) { console.error(err); showToast(errMsg(err), true); }
+            finally { btn.disabled = false; btn.innerHTML = html; }
         }
 
         /* ---------- estoque de materiais ---------- */
@@ -2806,8 +2910,8 @@
         async function backupBanco(btn) {
             if (btn.disabled) return; btn.disabled = true;
             try {
-                const tabelas = ['transactions', 'suppliers', 'maintenance', 'quotes', 'stock_items', 'stock_moves', 'perfis', 'permissoes', 'audit_logs', 'config'], dados = {};
-                for (const t of tabelas) { try { dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : t === 'permissoes' ? 'funcao' : 'id')); } catch (e) { if (!['quotes', 'stock_items', 'stock_moves', 'permissoes'].includes(t)) throw e; } }
+                const tabelas = ['transactions', 'suppliers', 'maintenance', 'quotes', 'stock_items', 'stock_moves', 'documentos', 'perfis', 'permissoes', 'audit_logs', 'config'], dados = {};
+                for (const t of tabelas) { try { dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : t === 'permissoes' ? 'funcao' : t === 'documentos' ? 'tipo' : 'id')); } catch (e) { if (!['quotes', 'stock_items', 'stock_moves', 'permissoes', 'documentos'].includes(t)) throw e; } }
                 const arq = { sistema: 'Blue Village Residence', exportadoEm: new Date().toISOString(), exportadoPor: currentUserLoggedIn.username, observacao: 'As senhas não fazem parte do backup.', tabelas: dados };
                 const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(arq, null, 2)], { type: 'application/json' }));
                 a.download = `bluevillage-backup-${today()}.json`; document.body.appendChild(a); a.click();
