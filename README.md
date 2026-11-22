@@ -63,20 +63,18 @@ O menu **Documentos** (abaixo de Orçamentos) tem duas abas:
 - Ao substituir, o sistema pede confirmação e apaga o arquivo anterior.
 
 **Contratos**
-- Vários contratos, de várias empresas (inclusive mais de um da mesma empresa).
-- **Novo Contrato:** empresa (sugere os fornecedores já cadastrados), descrição, vencimento (opcional), observações e o arquivo.
-- **Editar:** muda os dados e, se quiser, troca o arquivo (o antigo é apagado). **Excluir:** apaga o contrato e o arquivo, após confirmação.
-- Situação do vencimento: *Vencido*, *Vence em breve* (até 30 dias), *Em dia* ou *Sem vencimento*.
-- Busca por empresa, descrição ou arquivo; filtros por empresa e por vencimento.
+- Só o botão **Enviar contrato**: escolha um ou vários arquivos de uma vez e eles já sobem.
+- A lista mostra cada contrato (nome do arquivo, tamanho, quem enviou e quando), do mais recente para o mais antigo, com o botão **Baixar** em cada um.
+- Quem pode enviar também vê a lixeira para **excluir** um contrato enviado por engano (pede confirmação e apaga o arquivo).
 - Mostra o **espaço usado** pelos arquivos (o plano gratuito do Supabase tem 1 GB).
 
 **Regras das duas abas**
 - **Baixar:** para todos que têm acesso à tela Documentos. Baixa com o nome original (computador e celular).
-- **Enviar, substituir, editar e excluir:** só para quem tem acesso à **Gestão de Usuários**.
+- **Enviar, substituir e excluir:** só para quem tem acesso à **Gestão de Usuários**.
 - Aceita PDF, Word (DOC/DOCX/ODT) e imagem (JPG/PNG), até 50 MB por arquivo.
-- Envios, alterações, exclusões e downloads ficam nos logs.
+- Envios, exclusões e downloads ficam nos logs.
 - Os arquivos ficam numa pasta **privada** do Supabase Storage (`documentos`).
-- O **backup** guarda os dados dos arquivos (nome, empresa, quem enviou), mas não os arquivos em si: mantenha uma cópia também fora do sistema. O **Zerar sistema** não apaga os documentos nem os contratos.
+- O **backup** guarda os dados dos arquivos (nome, quem enviou), mas não os arquivos em si: mantenha uma cópia também fora do sistema. O **Zerar sistema** não apaga os documentos nem os contratos.
 
 ### Estoque
 - O menu **Estoque** (abaixo de Orçamentos) controla as peças e materiais de reposição (lâmpadas, cloro, fita isolante, sifões etc.).

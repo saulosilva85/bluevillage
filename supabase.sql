@@ -131,6 +131,9 @@ create table if not exists public.stock_moves (
   usuario       text,
   created_at    timestamptz not null default now()
 );
+-- contratos agora são só arquivos (empresa deixou de ser obrigatória)
+alter table public.contratos alter column empresa drop not null;
+
 create index if not exists stock_moves_item on public.stock_moves (item_id, id desc);
 
 -- Regimento Interno e Convenção: um arquivo atual de cada (o arquivo fica no Storage)
@@ -144,10 +147,10 @@ create table if not exists public.documentos (
   enviado_em   timestamptz not null default now()
 );
 
--- Contratos das empresas (vários arquivos; o arquivo fica no Storage, pasta "contratos/")
+-- Contratos (vários arquivos; o arquivo fica no Storage, pasta "contratos/")
 create table if not exists public.contratos (
   id           bigint generated always as identity primary key,
-  empresa      text not null,
+  empresa      text,
   titulo       text,
   vencimento   date,
   caminho      text not null,
