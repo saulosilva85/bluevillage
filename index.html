@@ -926,11 +926,10 @@
                 </select>
                 </div>
                 <select id="fin-type" onchange="dicaSaldo()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
-                    <option value="entrada">Entrada</option>
+                    <option value="entrada">Entrada (saldo atual da conta)</option>
                     <option value="saida">Saída (Despesa)</option>
-                    <option value="saldo">Saldo Atual da Conta (substitui o valor)</option>
                 </select>
-                <p id="fin-saldo-hint" class="hidden text-xs text-sky-300 -mt-2">O valor informado passa a ser o saldo da conta a partir desta data (não soma com lançamentos anteriores).</p>
+                <p id="fin-saldo-hint" class="hidden text-xs text-sky-300 -mt-2">O valor da entrada passa a ser o saldo da conta. Ele substitui o valor anterior, não soma.</p>
                 <input type="number" step="0.01" min="0" inputmode="decimal" id="fin-amount" placeholder="Valor (R$)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
                 <div><input type="hidden" id="fin-date" data-dp data-obrig><button type="button" class="dp-btn" data-for="fin-date" onclick="abrirCal('fin-date',this)" aria-label="Escolher data"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></button></div>
                 <div class="flex justify-end space-x-2">
@@ -1039,20 +1038,19 @@
         const TIPO_FIN = { entrada: ['Entrada', 'text-emerald-400'], saida: ['Saída', 'text-rose-400'], saldo: ['Saldo da Conta', 'text-sky-400'] };
         const tipoFin = t => TIPO_FIN[t] || [String(t), 'text-slate-300'];
         /* saldo de cada conta, em ordem de data (e de lançamento no mesmo dia):
-           "Saldo da Conta" SUBSTITUI o valor da conta (é o saldo real informado no mês);
-           depois dele, entradas somam e saídas subtraem até o próximo saldo informado. */
+           uma ENTRADA é o saldo real informado e SUBSTITUI o valor da conta (nunca soma);
+           saídas lançadas depois dela subtraem, até a próxima entrada. */
         function saldosContas(lista) {
             const s = { 'Conta Principal': 0, 'Fundo de Reserva': 0, 'Salão de Festa': 0 };
             [...lista].sort((a, b) => String(a.date).localeCompare(String(b.date)) || (a.id - b.id)).forEach(f => {
                 const c = f.account || 'Conta Principal';
                 if (!(c in s)) s[c] = 0;
-                if (f.type === 'saldo') s[c] = f.amount;
-                else if (f.type === 'entrada') s[c] += f.amount;
+                if (f.type === 'saldo' || f.type === 'entrada') s[c] = f.amount;
                 else s[c] -= f.amount;
             });
             return s;
         }
-        function dicaSaldo() { document.getElementById('fin-saldo-hint').classList.toggle('hidden', document.getElementById('fin-type').value !== 'saldo'); }
+        function dicaSaldo() { document.getElementById('fin-saldo-hint').classList.toggle('hidden', document.getElementById('fin-type').value !== 'entrada'); }
         /* regimento: o síndico pode gastar por mês até 5 salários mínimos (valor do salário fica no banco, tabela config) */
         const MULT_TETO = 5;
         /* o valor só aparece depois de lido do banco (mostra "…" enquanto carrega), para nunca exibir um valor desatualizado */
@@ -2107,11 +2105,11 @@
         }
         function exportarFinanceiroPDF(btn) {
             exportarPDF(btn, () => {
-                const s = saldosContas(globalTransactions); let ent = 0, sai = 0;
-                globalTransactions.forEach(f => { if (f.type === 'entrada') ent += f.amount; else if (f.type === 'saida') sai += f.amount; });
+                const s = saldosContas(globalTransactions); let sai = 0;
+                globalTransactions.forEach(f => { if (f.type === 'saida') sai += f.amount; });
                 const blob = gerarPDF({
                     titulo: 'Relatório Financeiro', subtitulo: `${globalTransactions.length} movimentação(ões)`,
-                    resumo: [`Conta Principal: ${brl(s['Conta Principal'])}   |   Fundo de Reserva: ${brl(s['Fundo de Reserva'])}   |   Salão de Festa: ${brl(s['Salão de Festa'])}`, `Total de entradas: ${brl(ent)}   |   Total de saídas: ${brl(sai)}`],
+                    resumo: [`Conta Principal: ${brl(s['Conta Principal'])}   |   Fundo de Reserva: ${brl(s['Fundo de Reserva'])}   |   Salão de Festa: ${brl(s['Salão de Festa'])}`, `Total de saídas: ${brl(sai)}`],
                     colunas: [{ t: 'Data', w: 8 }, { t: 'Descrição', w: 22 }, { t: 'Categoria', w: 13 }, { t: 'Conta', w: 13 }, { t: 'Torre / Setor', w: 12 }, { t: 'Tipo', w: 8 }, { t: 'Valor', w: 11, align: 'right' }, { t: 'Lançado por', w: 13 }],
                     linhas: globalTransactions.map(f => [fmtDate(f.date), f.description, f.category, f.account || 'Conta Principal', f.tower || 'Geral', tipoFin(f.type)[0], brl(f.amount), f.created_by || '-'])
                 });
