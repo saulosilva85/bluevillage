@@ -41,7 +41,7 @@ create table if not exists public.transactions (
   id          bigint generated always as identity primary key,
   description text not null,
   category    text not null,
-  type        text not null check (type in ('entrada', 'saida')),
+  type        text not null check (type in ('entrada', 'saida', 'saldo')),
   account     text not null default 'Conta Principal',
   amount      numeric(14,2) not null default 0,
   date        date not null,
@@ -52,6 +52,10 @@ create table if not exists public.transactions (
 
 -- Conta de cada movimentação: Conta Principal, Fundo de Reserva ou Salão de Festa
 alter table public.transactions add column if not exists account text not null default 'Conta Principal';
+
+-- Tipo 'saldo' (Saldo Atual da Conta): o valor informado SUBSTITUI o saldo da conta a partir da data
+alter table public.transactions drop constraint if exists transactions_type_check;
+alter table public.transactions add constraint transactions_type_check check (type in ('entrada', 'saida', 'saldo'));
 
 create table if not exists public.suppliers (
   id              bigint generated always as identity primary key,

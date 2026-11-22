@@ -21,16 +21,18 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 
 ### Dashboard & Torres
 - **Indicadores:** Conta Principal, Total de Despesas do Mês, Fundo de Reserva, Salão de Festa e Contratos Ativos.
-- Cada conta mostra o próprio saldo (entradas − saídas), alimentado pelas movimentações do Financeiro.
+- Cada conta mostra o próprio saldo, alimentado pelas movimentações do Financeiro. O último **Saldo Atual da Conta** informado substitui o valor do card (não soma com o anterior); entradas e saídas lançadas depois dele somam ou subtraem.
 - **Alerta de teto de gastos:** pelo regimento, o síndico pode gastar por mês até **5 salários mínimos**. O alerta considera as saídas da **Conta Principal** no mês atual.
 - **Salário mínimo:** alterado no **Financeiro**, pelo link discreto ⚙ *Salário mínimo* no fim da tela. O valor fica salvo no banco e o teto (5x) do Dashboard é recalculado na hora, em todos os aparelhos. Essa informação não aparece no PDF. Fica verde, amarelo (a partir de 80%) ou vermelho (acima do teto).
 - **Alerta de estoque:** (só para quem tem acesso ao Estoque) quando algum material está com estoque baixo ou zerado, aparece um aviso amarelo com os itens. Tocando nele, abre o **Estoque** já filtrado.
 - **Relatório por torre:** quantidade de chamados por torre. Clicando na torre, aparecem os chamados e os lançamentos financeiros dela.
 
 ### Financeiro
-- Movimentações de **Entrada** e **Saída (Despesa)**, com descrição, categoria, **conta**, torre (ou Condomínio Geral), valor e data.
+- Movimentações de **Entrada**, **Saída (Despesa)** e **Saldo Atual da Conta**, com descrição, categoria, **conta**, torre (ou Condomínio Geral), valor e data.
 - **Torre / Setor:** Condomínio Geral, Torre Jurerê, Torre Gunga, Torre Itacaré, Salão de Festa, Academia, Campinho, Bicicletário, Casa de Lixo, Estacionamento Visitantes, Guarita, Administração, Parquinho, Estacionamento Interno, Áreas Comuns, Churrasqueira Externa e Piscina.
-- **Contas:** Conta Principal, Fundo de Reserva e Salão de Festa. Uma entrada soma e uma saída subtrai do card da conta escolhida no Dashboard.
+- **Contas:** Conta Principal, Fundo de Reserva e Salão de Festa.
+- **Saldo Atual da Conta:** use este tipo para informar o saldo real da conta no mês (ex.: o extrato mostra R$ 14.000,00). O valor **substitui** o saldo do card a partir daquela data, em vez de somar com o que foi lançado antes. Depois dele, uma entrada soma e uma saída subtrai, até o próximo saldo informado. Não entra no total de entradas/saídas nem no teto de gastos.
+- ⚠️ Para usar o tipo *Saldo Atual da Conta*, rode uma vez no Supabase (SQL Editor) o trecho do `supabase.sql` que libera o tipo `saldo` na tabela `transactions`.
 - Clique na linha para ver os detalhes (quem lançou e quando). Botões para **editar** e **excluir**.
 
 ### Manutenção & Torres

@@ -925,11 +925,13 @@
                     <option value="Torre Jurerê">Torre Jurerê</option>
                 </select>
                 </div>
-                <select id="fin-type" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                <select id="fin-type" onchange="dicaSaldo()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
                     <option value="entrada">Entrada</option>
                     <option value="saida">Saída (Despesa)</option>
+                    <option value="saldo">Saldo Atual da Conta (substitui o valor)</option>
                 </select>
-                <input type="number" step="0.01" min="0.01" inputmode="decimal" id="fin-amount" placeholder="Valor (R$)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
+                <p id="fin-saldo-hint" class="hidden text-xs text-sky-300 -mt-2">O valor informado passa a ser o saldo da conta a partir desta data (não soma com lançamentos anteriores).</p>
+                <input type="number" step="0.01" min="0" inputmode="decimal" id="fin-amount" placeholder="Valor (R$)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
                 <div><input type="hidden" id="fin-date" data-dp data-obrig><button type="button" class="dp-btn" data-for="fin-date" onclick="abrirCal('fin-date',this)" aria-label="Escolher data"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></button></div>
                 <div class="flex justify-end space-x-2">
                     <button type="button" onclick="closeModal('modal-finance')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
@@ -1033,6 +1035,24 @@
         const EMAIL_DOMAIN = 'bluevillage.app'; // domínio interno dos logins (nenhum e-mail é enviado)
 
         const CONTA_COR = { 'Conta Principal': 'text-emerald-400', 'Fundo de Reserva': 'text-blue-400', 'Salão de Festa': 'text-pink-400' };
+        /* tipos de movimentação: rótulo e cor */
+        const TIPO_FIN = { entrada: ['Entrada', 'text-emerald-400'], saida: ['Saída', 'text-rose-400'], saldo: ['Saldo da Conta', 'text-sky-400'] };
+        const tipoFin = t => TIPO_FIN[t] || [String(t), 'text-slate-300'];
+        /* saldo de cada conta, em ordem de data (e de lançamento no mesmo dia):
+           "Saldo da Conta" SUBSTITUI o valor da conta (é o saldo real informado no mês);
+           depois dele, entradas somam e saídas subtraem até o próximo saldo informado. */
+        function saldosContas(lista) {
+            const s = { 'Conta Principal': 0, 'Fundo de Reserva': 0, 'Salão de Festa': 0 };
+            [...lista].sort((a, b) => String(a.date).localeCompare(String(b.date)) || (a.id - b.id)).forEach(f => {
+                const c = f.account || 'Conta Principal';
+                if (!(c in s)) s[c] = 0;
+                if (f.type === 'saldo') s[c] = f.amount;
+                else if (f.type === 'entrada') s[c] += f.amount;
+                else s[c] -= f.amount;
+            });
+            return s;
+        }
+        function dicaSaldo() { document.getElementById('fin-saldo-hint').classList.toggle('hidden', document.getElementById('fin-type').value !== 'saldo'); }
         /* regimento: o síndico pode gastar por mês até 5 salários mínimos (valor do salário fica no banco, tabela config) */
         const MULT_TETO = 5;
         /* o valor só aparece depois de lido do banco (mostra "…" enquanto carrega), para nunca exibir um valor desatualizado */
@@ -1314,6 +1334,7 @@
                 document.getElementById('form-finance').reset();
                 document.getElementById('fin-id').value = "";
                 document.getElementById('fin-date').value = today();
+                dicaSaldo();
             } else if (id === 'modal-quote') {
                 document.getElementById('quote-modal-title').innerText = 'Nova Cotação';
                 document.getElementById('form-quote').reset();
@@ -1420,7 +1441,7 @@
             document.getElementById('fin-type').value = f.type;
             document.getElementById('fin-amount').value = f.amount;
             document.getElementById('fin-date').value = f.date;
-            fecharCal(); syncDatas();
+            dicaSaldo(); fecharCal(); syncDatas();
             document.getElementById('modal-finance').classList.remove('hidden');
         }
 
@@ -1459,7 +1480,7 @@
                 <p><strong>Categoria:</strong> ${esc(f.category)}</p>
                 <p><strong>Conta:</strong> ${esc(f.account || 'Conta Principal')}</p>
                 <p><strong>Torre / Setor:</strong> ${esc(f.tower || 'Geral')}</p>
-                <p><strong>Tipo:</strong> <span class="${f.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${esc(String(f.type).toUpperCase())}</span></p>
+                <p><strong>Tipo:</strong> <span class="${tipoFin(f.type)[1]} font-semibold">${esc(tipoFin(f.type)[0].toUpperCase())}</span></p>
                 <p><strong>Valor:</strong> ${brl(f.amount)}</p>
                 <p><strong>Data da Movimentação:</strong> ${fmtDate(f.date)}</p>
                 <hr class="border-slate-700 my-2">
@@ -1489,7 +1510,7 @@
                 towerFin.forEach(f => {
                     html += `<div class="bg-slate-900 p-3 rounded border border-slate-700 text-xs flex justify-between items-center gap-2">
                         <div><strong>${esc(f.description)}</strong> (${esc(f.category)}) - ${fmtDate(f.date)}</div>
-                        <span class="${f.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'} font-bold shrink-0">${brl(f.amount)}</span></div>`;
+                        <span class="${tipoFin(f.type)[1]} font-bold shrink-0">${brl(f.amount)}</span></div>`;
                 });
                 html += `</div>`;
             }
@@ -1570,23 +1591,21 @@
 
         function renderAll(logs) {
             /* financeiro */
-            /* cada conta tem seu próprio saldo: entradas somam e saídas subtraem.
+            /* cada conta tem seu próprio saldo (veja saldosContas): o "Saldo da Conta" informado substitui o valor.
                O teto de gastos considera só as saídas da Conta Principal no mês atual. */
-            const saldos = { 'Conta Principal': 0, 'Fundo de Reserva': 0, 'Salão de Festa': 0 };
+            const saldos = saldosContas(globalTransactions);
             let monthExpenses = 0, finHtml = '';
             const mes = today().slice(0, 7);
             globalTransactions.forEach(f => {
                 const val = f.amount, conta = f.account || 'Conta Principal';
-                if (!(conta in saldos)) saldos[conta] = 0;
-                if (f.type === 'entrada') saldos[conta] += val;
-                else { saldos[conta] -= val; if (conta === 'Conta Principal' && String(f.date).slice(0, 7) === mes) monthExpenses += val; }
+                if (f.type === 'saida' && conta === 'Conta Principal' && String(f.date).slice(0, 7) === mes) monthExpenses += val;
                 finHtml += `<tr onclick="viewFinanceDetail(${f.id})" class="hover:bg-slate-700/35 cursor-pointer">
                     <td class="p-4 whitespace-nowrap">${fmtDate(f.date)}</td>
                     <td class="p-4 font-medium">${esc(f.description)}</td>
                     <td class="p-4">${esc(f.category)}</td>
                     <td class="p-4"><span class="${CONTA_COR[f.account] || 'text-slate-300'} text-xs font-semibold whitespace-nowrap">${esc(f.account || 'Conta Principal')}</span></td>
                     <td class="p-4"><span class="bg-slate-700 px-2 py-1 rounded text-xs whitespace-nowrap">${esc(f.tower || 'Geral')}</span></td>
-                    <td class="p-4"><span class="${f.type === 'entrada' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${esc(String(f.type).toUpperCase())}</span></td>
+                    <td class="p-4"><span class="${tipoFin(f.type)[1]} font-semibold whitespace-nowrap">${esc(tipoFin(f.type)[0].toUpperCase())}</span></td>
                     <td class="p-4 font-semibold whitespace-nowrap">${brl(val)}</td>
                     <td class="p-4 text-right space-x-1 whitespace-nowrap">
                         <button onclick="editTransaction(${f.id}, event)" class="bg-slate-700 hover:bg-blue-600 text-slate-200 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
@@ -1828,7 +1847,7 @@
                     amount: parseFloat(document.getElementById('fin-amount').value),
                     date: document.getElementById('fin-date').value
                 };
-                if (!(data.amount > 0)) throw { message: 'Informe um valor válido.' };
+                if (!(data.type === 'saldo' ? data.amount >= 0 : data.amount > 0)) throw { message: 'Informe um valor válido.' };
                 if (!data.date) throw { message: 'Informe a data.' };
                 if (id) {
                     await q(sb.from('transactions').update(data).eq('id', id));
@@ -2088,13 +2107,13 @@
         }
         function exportarFinanceiroPDF(btn) {
             exportarPDF(btn, () => {
-                const s = { 'Conta Principal': 0, 'Fundo de Reserva': 0, 'Salão de Festa': 0 }; let ent = 0, sai = 0;
-                globalTransactions.forEach(f => { const c = f.account || 'Conta Principal'; if (!(c in s)) s[c] = 0; if (f.type === 'entrada') { s[c] += f.amount; ent += f.amount; } else { s[c] -= f.amount; sai += f.amount; } });
+                const s = saldosContas(globalTransactions); let ent = 0, sai = 0;
+                globalTransactions.forEach(f => { if (f.type === 'entrada') ent += f.amount; else if (f.type === 'saida') sai += f.amount; });
                 const blob = gerarPDF({
                     titulo: 'Relatório Financeiro', subtitulo: `${globalTransactions.length} movimentação(ões)`,
                     resumo: [`Conta Principal: ${brl(s['Conta Principal'])}   |   Fundo de Reserva: ${brl(s['Fundo de Reserva'])}   |   Salão de Festa: ${brl(s['Salão de Festa'])}`, `Total de entradas: ${brl(ent)}   |   Total de saídas: ${brl(sai)}`],
                     colunas: [{ t: 'Data', w: 8 }, { t: 'Descrição', w: 22 }, { t: 'Categoria', w: 13 }, { t: 'Conta', w: 13 }, { t: 'Torre / Setor', w: 12 }, { t: 'Tipo', w: 8 }, { t: 'Valor', w: 11, align: 'right' }, { t: 'Lançado por', w: 13 }],
-                    linhas: globalTransactions.map(f => [fmtDate(f.date), f.description, f.category, f.account || 'Conta Principal', f.tower || 'Geral', f.type === 'entrada' ? 'Entrada' : 'Saída', brl(f.amount), f.created_by || '-'])
+                    linhas: globalTransactions.map(f => [fmtDate(f.date), f.description, f.category, f.account || 'Conta Principal', f.tower || 'Geral', tipoFin(f.type)[0], brl(f.amount), f.created_by || '-'])
                 });
                 return { blob, nome: `financeiro-${today()}.pdf`, desc: 'Relatório financeiro' };
             });
