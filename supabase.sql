@@ -144,6 +144,21 @@ create table if not exists public.documentos (
   enviado_em   timestamptz not null default now()
 );
 
+-- Contratos das empresas (vários arquivos; o arquivo fica no Storage, pasta "contratos/")
+create table if not exists public.contratos (
+  id           bigint generated always as identity primary key,
+  empresa      text not null,
+  titulo       text,
+  vencimento   date,
+  caminho      text not null,
+  nome         text not null,
+  tamanho      bigint,
+  tipo_arquivo text,
+  obs          text,
+  enviado_por  text,
+  enviado_em   timestamptz not null default now()
+);
+
 create table if not exists public.audit_logs (
   id        bigint generated always as identity primary key,
   action    text not null,
@@ -191,7 +206,7 @@ alter table public.stock_moves  enable row level security;
 -- ---------- Permissões de perfil ----------
 -- Cada função (cargo) acessa só as telas marcadas em "Permissões de Perfil".
 -- O Síndico e o usuário admin sempre têm acesso total.
--- Telas: dashboard, finance, maintenance, suppliers, quotes, stock, users, database
+-- Telas (docs = menu Documentos): dashboard, finance, maintenance, suppliers, quotes, stock, users, database
 create table if not exists public.permissoes (
   funcao         text primary key,
   telas          text[] not null default '{}',
@@ -263,6 +278,11 @@ create policy gravar on public.config       for all    to authenticated using (p
 alter table public.documentos enable row level security;
 drop policy if exists ler on public.documentos;
 drop policy if exists gravar on public.documentos;
+alter table public.contratos enable row level security;
+drop policy if exists ler on public.contratos;
+drop policy if exists gravar on public.contratos;
+create policy ler    on public.contratos    for select to authenticated using (public.pode('docs'));
+create policy gravar on public.contratos    for all    to authenticated using (public.pode('users')) with check (public.pode('users'));
 create policy ler    on public.documentos   for select to authenticated using (public.pode('docs'));
 create policy gravar on public.documentos   for all    to authenticated using (public.pode('users')) with check (public.pode('users'));
 create policy ler    on public.permissoes   for select to authenticated using (public.eh_ativo());
@@ -493,7 +513,7 @@ create trigger bv_autoconfirmar before insert on auth.users
 do $$
 declare t text;
 begin
-  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config','quotes','stock_items','stock_moves','permissoes','documentos'] loop
+  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config','quotes','stock_items','stock_moves','permissoes','documentos','contratos'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
       execute format('alter publication supabase_realtime add table public.%I', t);
     end if;
