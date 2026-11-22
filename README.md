@@ -55,6 +55,14 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - **Filtros:** busca por serviço ou empresa, por status e por local.
 - **Exportar PDF:** gera a tabela com os 3 orçamentos de cada cotação, o aprovado, quem aprovou e a justificativa, respeitando os filtros.
 
+### Regimento & Convenção
+- O menu **Regimento & Convenção** (abaixo de Orçamentos) guarda o arquivo atual do **Regimento Interno** e da **Convenção do Condomínio**.
+- **Baixar:** baixa o arquivo com o nome original (funciona no computador e no celular).
+- **Enviar arquivo / Substituir arquivo:** aparece só para quem tem acesso à **Gestão de Usuários**. Aceita PDF, Word (DOC/DOCX/ODT) e imagem (JPG/PNG), até 50 MB. Ao substituir, o sistema pede confirmação e apaga o arquivo anterior.
+- Cada cartão mostra o nome do arquivo, o tamanho, quem enviou e quando. Envios e downloads ficam nos logs.
+- Os arquivos ficam numa pasta **privada** do Supabase Storage (`documentos`): só usuários logados com acesso a essa tela conseguem baixar.
+- O **backup** guarda os dados do arquivo (nome, quem enviou), mas não o arquivo em si; mantenha uma cópia do Regimento e da Convenção também fora do sistema. O **Zerar sistema** não apaga esses dois arquivos.
+
 ### Estoque
 - O menu **Estoque** (abaixo de Orçamentos) controla as peças e materiais de reposição (lâmpadas, cloro, fita isolante, sifões etc.).
 - **Novo Material:** nome, categoria (ou *Outra*), código opcional, unidade (un, peça, caixa, metro, litro, kg...), onde fica guardado, **estoque mínimo**, quantidade atual e custo unitário opcional. Não deixa cadastrar dois materiais com o mesmo nome.
@@ -78,7 +86,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 #### Permissões de Perfil
 - No fim da tela **Gestão de Usuários**, cada função tem a lista das telas do sistema. Toque para marcar ou desmarcar e clique em **Salvar permissões**.
 - O **Síndico** e o usuário **admin** sempre têm acesso total (não dá para tirar).
-- Padrão inicial: Subsíndico, Conselho Fiscal e Administrativo acessam tudo; o **Supervisor** acessa só **Manutenção, Fornecedores, Orçamentos e Estoque** (sem Dashboard, Financeiro, Usuários e Banco & Logs).
+- Padrão inicial: Subsíndico, Conselho Fiscal e Administrativo acessam tudo; o **Supervisor** acessa só **Manutenção, Fornecedores, Orçamentos, Regimento & Convenção e Estoque** (sem Dashboard, Financeiro, Usuários e Banco & Logs).
 - O menu mostra apenas as telas liberadas, e o usuário entra direto na primeira delas. Se a função não tiver nenhuma tela, aparece o aviso *Sem telas liberadas*.
 - Mudanças valem na hora, também para quem já está com o sistema aberto em outro aparelho.
 - A proteção também está no banco: sem a permissão, o Supabase não entrega nem deixa gravar os dados da tela (ex.: quem não tem Financeiro nem Dashboard não consegue ler as movimentações). Só quem tem **Gestão de Usuários** pode mudar permissões, funções e usuários.
@@ -189,6 +197,7 @@ Abra o site e entre com `admin` e a senha inicial. Esse primeiro login cria o ad
 | *Sem conexão com a internet* | Verifique a internet. Se o Supabase estiver pausado, clique em **Restore project**. |
 | *As tabelas do estoque ainda não existem no banco* | Execute o `supabase.sql` atualizado no SQL Editor (pode rodar de novo; não apaga dados). |
 | *A tabela de permissões ainda não existe no banco* | Execute o `supabase.sql` atualizado. Até lá, todos continuam acessando tudo. |
+| *A área de arquivos ainda não existe no banco* ou *A pasta de arquivos não existe* | Execute o `supabase.sql` atualizado (ele cria a pasta `documentos` no Storage). |
 | Versão nova não aparece | Aguarde o ✅ em **Actions** e recarregue com **Ctrl+F5**. |
 
 ---

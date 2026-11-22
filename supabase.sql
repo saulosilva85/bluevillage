@@ -133,6 +133,17 @@ create table if not exists public.stock_moves (
 );
 create index if not exists stock_moves_item on public.stock_moves (item_id, id desc);
 
+-- Regimento Interno e Convenção: um arquivo atual de cada (o arquivo fica no Storage)
+create table if not exists public.documentos (
+  tipo         text primary key check (tipo in ('regimento', 'convencao')),
+  caminho      text not null,
+  nome         text not null,
+  tamanho      bigint,
+  tipo_arquivo text,
+  enviado_por  text,
+  enviado_em   timestamptz not null default now()
+);
+
 create table if not exists public.audit_logs (
   id        bigint generated always as identity primary key,
   action    text not null,
@@ -192,14 +203,23 @@ alter table public.permissoes enable row level security;
 create or replace function public.bv_permissoes_padrao() returns void
 language sql security definer set search_path = public as $$
   insert into public.permissoes (funcao, telas) values
-    ('Subsíndico',      '{dashboard,finance,maintenance,suppliers,quotes,stock,users,database}'),
-    ('Conselho Fiscal', '{dashboard,finance,maintenance,suppliers,quotes,stock,users,database}'),
-    ('Administrativo',  '{dashboard,finance,maintenance,suppliers,quotes,stock,users,database}'),
-    ('Supervisor',      '{maintenance,suppliers,quotes,stock}')
+    ('Subsíndico',      '{dashboard,finance,maintenance,suppliers,quotes,docs,stock,users,database}'),
+    ('Conselho Fiscal', '{dashboard,finance,maintenance,suppliers,quotes,docs,stock,users,database}'),
+    ('Administrativo',  '{dashboard,finance,maintenance,suppliers,quotes,docs,stock,users,database}'),
+    ('Supervisor',      '{maintenance,suppliers,quotes,docs,stock}')
   on conflict (funcao) do nothing;
 $$;
 do $$ begin perform public.bv_permissoes_padrao(); end $$;
 revoke execute on function public.bv_permissoes_padrao() from public, anon, authenticated;
+
+-- uma única vez: libera a nova tela "Regimento & Convenção" para as funções já existentes
+do $$
+begin
+  if not exists (select 1 from public.bv_privado where chave = 'mig_docs') then
+    update public.permissoes set telas = array_append(telas, 'docs') where not ('docs' = any (telas));
+    insert into public.bv_privado (chave, valor) values ('mig_docs', '1');
+  end if;
+end $$;
 
 create or replace function public.pode(tela text) returns boolean
 language sql stable security definer set search_path = public as $$
@@ -240,6 +260,11 @@ create policy gravar on public.stock_items  for all    to authenticated using (p
 create policy gravar on public.stock_moves  for all    to authenticated using (public.pode('stock')) with check (public.pode('stock'));
 create policy ler    on public.config       for select to authenticated using (public.eh_ativo());
 create policy gravar on public.config       for all    to authenticated using (public.pode('finance')) with check (public.pode('finance'));
+alter table public.documentos enable row level security;
+drop policy if exists ler on public.documentos;
+drop policy if exists gravar on public.documentos;
+create policy ler    on public.documentos   for select to authenticated using (public.pode('docs'));
+create policy gravar on public.documentos   for all    to authenticated using (public.pode('users')) with check (public.pode('users'));
 create policy ler    on public.permissoes   for select to authenticated using (public.eh_ativo());
 create policy gravar on public.permissoes   for all    to authenticated using (public.pode('users')) with check (public.pode('users'));
 
@@ -380,6 +405,20 @@ drop trigger if exists bv_travar_cotacao on public.quotes;
 create trigger bv_travar_cotacao before update or delete on public.quotes
   for each row execute function public.bv_travar_cotacao();
 
+-- ---------- Arquivos do Regimento e da Convenção (Supabase Storage) ----------
+-- Pasta privada "documentos": baixar = quem tem a tela; enviar/substituir = quem tem Gestão de Usuários.
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('documentos', 'documentos', false, 52428800)
+on conflict (id) do nothing;
+drop policy if exists bv_docs_ler on storage.objects;
+drop policy if exists bv_docs_enviar on storage.objects;
+drop policy if exists bv_docs_alterar on storage.objects;
+drop policy if exists bv_docs_apagar on storage.objects;
+create policy bv_docs_ler     on storage.objects for select to authenticated using (bucket_id = 'documentos' and public.pode('docs'));
+create policy bv_docs_enviar  on storage.objects for insert to authenticated with check (bucket_id = 'documentos' and public.pode('users'));
+create policy bv_docs_alterar on storage.objects for update to authenticated using (bucket_id = 'documentos' and public.pode('users'));
+create policy bv_docs_apagar  on storage.objects for delete to authenticated using (bucket_id = 'documentos' and public.pode('users'));
+
 -- ---------- Estoque: saldo calculado pelo banco ----------
 -- Cada entrada soma, cada saída subtrai (sem deixar ficar negativo) e o ajuste
 -- de inventário troca o saldo pela quantidade contada.
@@ -454,7 +493,7 @@ create trigger bv_autoconfirmar before insert on auth.users
 do $$
 declare t text;
 begin
-  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config','quotes','stock_items','stock_moves','permissoes'] loop
+  foreach t in array array['perfis','transactions','suppliers','maintenance','audit_logs','config','quotes','stock_items','stock_moves','permissoes','documentos'] loop
     if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
       execute format('alter publication supabase_realtime add table public.%I', t);
     end if;
