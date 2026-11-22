@@ -84,6 +84,7 @@
         .perm-chip.on .marca{background:#3b82f6;border-color:#3b82f6}
         .perm-chip.on .marca::after{content:'';width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
         .perm-chip:disabled{cursor:default;opacity:.85}
+        .docs-aba{color:#94a3b8}.docs-aba:hover{color:#e2e8f0}.docs-aba.on{background:#2563eb;color:#fff}
         .mov-tipo{border-color:#334155;background:#0f172a;color:#94a3b8}
         .mov-tipo.on[data-tipo="Entrada"]{background:rgba(16,185,129,.18);border-color:#10b981;color:#34d399}
         .mov-tipo.on[data-tipo="Saída"]{background:rgba(245,158,11,.18);border-color:#f59e0b;color:#fbbf24}
@@ -179,7 +180,7 @@
                 <button onclick="switchTab('maintenance')" id="btn-maintenance" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-screwdriver-wrench w-5"></i><span>Manutenção & Torres</span></button>
                 <button onclick="switchTab('suppliers')" id="btn-suppliers" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-handshake w-5"></i><span>Fornecedores & Contratos</span></button>
                 <button onclick="switchTab('quotes')" id="btn-quotes" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-file-invoice-dollar w-5"></i><span>Orçamentos</span></button>
-                <button onclick="switchTab('docs')" id="btn-docs" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-scale-balanced w-5"></i><span>Regimento & Convenção</span></button>
+                <button onclick="switchTab('docs')" id="btn-docs" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-folder-open w-5"></i><span>Documentos</span></button>
                 <button onclick="switchTab('stock')" id="btn-stock" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-boxes-stacked w-5"></i><span>Estoque</span></button>
                 <button onclick="switchTab('users')" id="btn-users" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-users-gear w-5"></i><span>Gestão de Usuários</span></button>
                 <button onclick="switchTab('database')" id="btn-database" class="w-full text-left px-4 py-2.5 rounded-lg font-medium text-slate-300 hover:bg-slate-700/50 flex items-center space-x-3"><i class="fa-solid fa-database w-5"></i><span>Banco & Logs</span></button>
@@ -450,14 +451,34 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="quotes-container"></div>
                 </div>
 
-                <!-- REGIMENTO & CONVENÇÃO -->
+                <!-- DOCUMENTOS: regimento, convenção e contratos -->
                 <div id="tab-docs" class="hidden space-y-6">
                     <div>
-                        <h3 class="text-xl font-bold">Regimento & Convenção</h3>
-                        <p class="text-xs text-slate-400 mt-1">Arquivos oficiais do condomínio. Toque em <strong>Baixar</strong> para consultar a versão atual.</p>
+                        <h3 class="text-xl font-bold">Documentos</h3>
+                        <p class="text-xs text-slate-400 mt-1">Regimento, Convenção e contratos do condomínio. Toque em <strong>Baixar</strong> para consultar o arquivo.</p>
                     </div>
                     <div id="docs-aviso" class="hidden p-4 rounded-xl border bg-amber-500/10 border-amber-500/30 text-amber-400 text-sm"></div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="docs-container"></div>
+                    <div class="grid grid-cols-2 sm:inline-grid sm:grid-flow-col gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1" id="docs-abas">
+                        <button type="button" data-sub="regimento" onclick="docsAba('regimento')" class="docs-aba px-4 py-2.5 rounded-lg text-sm font-semibold"><i class="fa-solid fa-scale-balanced mr-1"></i> Regimento & Convenção</button>
+                        <button type="button" data-sub="contratos" onclick="docsAba('contratos')" class="docs-aba px-4 py-2.5 rounded-lg text-sm font-semibold"><i class="fa-solid fa-file-signature mr-1"></i> Contratos <span id="ct-qtd" class="ml-1 text-xs opacity-80"></span></button>
+                    </div>
+                    <div id="docs-sub-regimento">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="docs-container"></div>
+                    </div>
+                    <div id="docs-sub-contratos" class="hidden space-y-4">
+                        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl flex flex-col md:flex-row gap-3 md:items-center">
+                            <input type="text" id="ct-busca" oninput="renderContratos()" placeholder="Buscar por empresa, descrição ou arquivo..." class="w-full md:flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+                            <select id="ct-filtro-empresa" onchange="renderContratos()" class="min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"><option value="TODAS">Todas as empresas</option></select>
+                            <select id="ct-filtro-venc" onchange="renderContratos()" class="min-w-0 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
+                                <option value="TODOS">Todos os vencimentos</option>
+                                <option value="VENCENDO">Vencidos ou vencendo (30 dias)</option>
+                                <option value="EMDIA">Em dia / sem vencimento</option>
+                            </select>
+                            <button id="btn-novo-contrato" onclick="abrirContrato()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i> Novo Contrato</button>
+                        </div>
+                        <p id="ct-espaco" class="text-xs text-slate-400"></p>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="ct-container"></div>
+                    </div>
                     <input type="file" id="docs-arquivo" class="hidden" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,image/jpeg,image/png" onchange="arquivoEscolhido(this)">
                 </div>
 
@@ -664,6 +685,36 @@
         </div>
     </div>
     <datalist id="lista-fornecedores"></datalist>
+
+    <!-- DOCUMENTOS: contrato -->
+    <div id="modal-contrato" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-xl w-full max-w-lg">
+            <h4 id="ct-title" class="text-lg font-bold mb-4">Novo Contrato</h4>
+            <form id="form-contrato" onsubmit="salvarContrato(event)" class="space-y-4" autocomplete="off">
+                <input type="hidden" id="ct-id">
+                <div><label class="campo-label" for="ct-empresa">Empresa</label>
+                    <input type="text" id="ct-empresa" required list="lista-empresas-contrato" placeholder="Ex.: Elevadores Atlas" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                <div><label class="campo-label" for="ct-titulo">Descrição do contrato</label>
+                    <input type="text" id="ct-titulo" placeholder="Ex.: Manutenção mensal dos elevadores" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                <div><label class="campo-label">Vencimento (opcional)</label><input type="hidden" id="ct-venc" data-dp><button type="button" class="dp-btn" data-for="ct-venc" onclick="abrirCal('ct-venc',this)" aria-label="Escolher data"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></button></div>
+                <div><label class="campo-label" for="ct-obs">Observações</label>
+                    <input type="text" id="ct-obs" placeholder="Valor, aditivos, contato..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100"></div>
+                <div>
+                    <label class="campo-label">Arquivo do contrato</label>
+                    <input type="file" id="ct-arquivo" class="hidden" accept=".pdf,.doc,.docx,.odt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,image/jpeg,image/png" onchange="arquivoContratoEscolhido(this)">
+                    <button type="button" onclick="document.getElementById('ct-arquivo').click()" class="w-full flex items-center gap-3 bg-slate-900 border border-dashed border-slate-600 hover:border-blue-500 rounded-lg p-3 text-left">
+                        <i class="fa-solid fa-paperclip text-blue-400 text-lg shrink-0"></i>
+                        <span id="ct-arquivo-nome" class="text-sm text-slate-300 break-all">Escolher arquivo (PDF, Word ou imagem, até 50 MB)</span>
+                    </button>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-contrato')" class="px-4 py-2 bg-slate-700 rounded-lg text-sm">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 rounded-lg text-sm text-white">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <datalist id="lista-empresas-contrato"></datalist>
 
     <!-- ESTOQUE: cadastro do material -->
     <div id="modal-stock-item" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
@@ -1032,7 +1083,7 @@
         let currentUserLoggedIn = null;
         let currentMaintenancePage = 1;
         const itemsPerPage = 6;
-        let SBM, sb, canal = null, sessionUid = null, justLoggedIn = false, senhaBootstrap = null, reloadTimer = null, pollTimer = null;
+        let SBM, sb, canal = null, sessionUid = null, justLoggedIn = false, senhaBootstrap = null, reloadTimer = null, pollTimer = null, cacheDados = {}, pendentes = new Set();
 
         function mostrarSalario() {
             const ok = SALARIO_MINIMO > 0;
@@ -1208,7 +1259,7 @@
 
         function showLogin() {
             fecharCal();
-            pararTempoReal(); sessionUid = null; currentUserLoggedIn = null; abaAtual = null; permEdit = null; toggleMenu(false);
+            pararTempoReal(); sessionUid = null; currentUserLoggedIn = null; abaAtual = null; permEdit = null; cacheDados = {}; pendentes.clear(); toggleMenu(false);
             document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
             document.getElementById('app-screen').classList.add('hidden');
             document.getElementById('login').classList.remove('hidden');
@@ -1231,13 +1282,24 @@
         }
 
         /* ---------- atualização automática entre aparelhos ---------- */
-        function agendarRecarga() { clearTimeout(reloadTimer); reloadTimer = setTimeout(() => { if (currentUserLoggedIn) loadAllData(); }, 300); }
+        /* sem tabela = carga completa; com tabela = só ela (juntando os avisos que chegam em sequência) */
+        let recargaFila = new Set(), recargaTudo = false;
+        function agendarRecarga(tabela) {
+            if (tabela) (RECARREGA[tabela] || [tabela]).forEach(t => recargaFila.add(t)); else recargaTudo = true;
+            clearTimeout(reloadTimer);
+            reloadTimer = setTimeout(() => {
+                const lista = recargaTudo ? null : [...recargaFila];
+                recargaFila = new Set(); recargaTudo = false;
+                if (currentUserLoggedIn) loadAllData(lista);
+            }, 300);
+        }
         function iniciarTempoReal() {
             pararTempoReal();
             canal = sb.channel('bv-' + Date.now());
-            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config', 'quotes', 'stock_items', 'stock_moves', 'permissoes', 'documentos'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, agendarRecarga));
+            ['transactions', 'suppliers', 'maintenance', 'audit_logs', 'perfis', 'config', 'quotes', 'stock_items', 'stock_moves', 'permissoes', 'documentos', 'contratos'].forEach(t => canal.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => agendarRecarga(t)));
             canal.subscribe();
-            pollTimer = setInterval(() => { if (!document.hidden) agendarRecarga(); }, 30000);
+            /* conferência completa a cada 5 minutos (caso algum aviso em tempo real se perca) */
+            pollTimer = setInterval(() => { if (!document.hidden) agendarRecarga(); }, 300000);
         }
         function pararTempoReal() { if (canal && sb) sb.removeChannel(canal).catch(() => {}); canal = null; clearInterval(pollTimer); }
         document.addEventListener('visibilitychange', () => { if (!document.hidden && currentUserLoggedIn) agendarRecarga(); });
@@ -1474,43 +1536,68 @@
 
         /* ---------- leitura dos dados (Supabase) ---------- */
         let carregando = null;
-        async function loadAllData() {
+        /* ---------- carga dos dados ----------
+           Cada tabela é buscada separadamente e guardada em memória. Quando chega um aviso de mudança
+           (tempo real), só a tabela que mudou é buscada de novo; a carga completa fica para o login,
+           para a volta ao aplicativo e para a conferência a cada 5 minutos (economiza o tráfego do Supabase). */
+        const CARGAS = {
+            transactions: () => sb.from('transactions').select('*').order('date', { ascending: false }).order('id', { ascending: false }),
+            suppliers: () => sb.from('suppliers').select('*').order('name'),
+            perfis: () => sb.from('perfis').select('*').order('nome'),
+            maintenance: () => sb.from('maintenance').select('*').order('id', { ascending: false }),
+            audit_logs: () => sb.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(50),
+            config: () => sb.from('config').select('salario').eq('id', 'main').maybeSingle(),
+            quotes: () => sb.from('quotes').select('*').order('id', { ascending: false }),
+            stock_items: () => sb.from('stock_items').select('*').order('nome'),
+            permissoes: () => sb.from('permissoes').select('*'),
+            documentos: () => sb.from('documentos').select('*'),
+            contratos: () => sb.from('contratos').select('*').order('empresa').order('id', { ascending: false })
+        };
+        /* tabelas sem as quais o sistema não funciona (erro aparece para o usuário) */
+        const ESSENCIAIS = ['transactions', 'suppliers', 'perfis', 'maintenance', 'audit_logs'];
+        /* mudança numa tabela → o que precisa ser buscado de novo */
+        const RECARREGA = { stock_moves: ['stock_items'] };
+        async function loadAllData(tabelas) {
             if (!currentUserLoggedIn) return;
-            if (carregando) return carregando;
+            let lista = (tabelas && tabelas.length ? tabelas : Object.keys(CARGAS)).filter(t => CARGAS[t]);
+            if (carregando) {
+                lista.forEach(t => pendentes.add(t));
+                await carregando;
+                if (pendentes.size) { const p = [...pendentes]; pendentes.clear(); return loadAllData(p); }
+                while (carregando) await carregando;
+                return;
+            }
+            /* ainda sem as tabelas principais (ex.: logo após entrar): busca tudo */
+            if (ESSENCIAIS.some(t => !cacheDados[t])) lista = Object.keys(CARGAS);
             carregando = (async () => {
                 try {
-                    /* orçamentos em paralelo; se a tabela ainda não existir, o resto do sistema continua funcionando */
-                    const pQuotes = sb.from('quotes').select('*').order('id', { ascending: false }).then(r => r, e => ({ error: e }));
-                    const pDocs = sb.from('documentos').select('*').then(r => r, e => ({ error: e }));
-                    const pPerm = sb.from('permissoes').select('*').then(r => r, e => ({ error: e }));
-                    const pStock = sb.from('stock_items').select('*').order('nome').then(r => r, e => ({ error: e }));
-                    const [fin, sup, users, maint, logs] = await Promise.all([
-                        q(sb.from('transactions').select('*').order('date', { ascending: false }).order('id', { ascending: false })),
-                        q(sb.from('suppliers').select('*').order('name')),
-                        q(sb.from('perfis').select('*').order('nome')),
-                        q(sb.from('maintenance').select('*').order('id', { ascending: false })),
-                        q(sb.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(50))
-                    ]);
-                    const resQuotes = await pQuotes;
-                    globalTransactions = fin.map(f => ({ ...f, amount: Number(f.amount) || 0 }));
-                    globalSuppliers = sup.map(s => ({ id: s.id, name: s.name, service: s.service, contactName: s.contact_name, contactPhone: s.contact_phone, contractStatus: s.contract_status, monthlyValue: Number(s.monthly_value) || 0, expiryDate: s.expiry_date, contractLink: s.contract_link }));
-                    globalUsers = users;
+                    const res = await Promise.all(lista.map(t => CARGAS[t]().then(r => r, e => ({ data: null, error: e }))));
+                    lista.forEach((t, i) => { cacheDados[t] = res[i]; });
+                    const erro = ESSENCIAIS.map(t => cacheDados[t] && cacheDados[t].error).find(Boolean);
+                    if (erro) throw erro;
+                    const dado = t => cacheDados[t].data || [];
+                    globalTransactions = dado('transactions').map(f => ({ ...f, amount: Number(f.amount) || 0 }));
+                    globalSuppliers = dado('suppliers').map(s => ({ id: s.id, name: s.name, service: s.service, contactName: s.contact_name, contactPhone: s.contact_phone, contractStatus: s.contract_status, monthlyValue: Number(s.monthly_value) || 0, expiryDate: s.expiry_date, contractLink: s.contract_link }));
+                    const users = dado('perfis'); globalUsers = users;
                     /* salário mínimo: se a tabela ainda não existir, mantém o valor padrão */
-                    try { const cfg = await q(sb.from('config').select('salario').eq('id', 'main').maybeSingle()); SALARIO_MINIMO = cfg && Number(cfg.salario) > 0 ? Number(cfg.salario) : SALARIO_PADRAO; }
-                    catch (e) { console.warn('config', e); if (!(SALARIO_MINIMO > 0)) SALARIO_MINIMO = SALARIO_PADRAO; }
+                    const cfg = cacheDados.config || { error: true };
+                    if (!cfg.error) SALARIO_MINIMO = cfg.data && Number(cfg.data.salario) > 0 ? Number(cfg.data.salario) : SALARIO_PADRAO;
+                    else { console.warn('config', cfg.error); if (!(SALARIO_MINIMO > 0)) SALARIO_MINIMO = SALARIO_PADRAO; }
                     mostrarSalario();
-                    globalMaintenance = maint.map(m => ({ ...m, dueDate: m.due_date }));
+                    globalMaintenance = dado('maintenance').map(m => ({ ...m, dueDate: m.due_date }));
                     if (!users.some(u => u.id === sessionUid)) { showToast('Seu acesso foi removido.', true); encerrarSessao(); return; }
                     const eu = users.find(u => u.id === sessionUid);
                     if (eu.funcao !== currentUserLoggedIn.role) {
                         currentUserLoggedIn.role = eu.funcao;
                         document.getElementById('current-user-badge').innerHTML = `<i class="fa-solid fa-user mr-1"></i> ${esc(eu.nome)} (${esc(eu.funcao)})`;
                     }
-                    carregarPermissoes(await pPerm);
-                    carregarCotacoes(resQuotes);
-                    carregarEstoque(await pStock);
-                    carregarDocumentos(await pDocs);
-                    renderAll(logs);
+                    const opc = t => cacheDados[t] || { error: { message: 'sem dados' } };
+                    carregarPermissoes(opc('permissoes'));
+                    carregarCotacoes(opc('quotes'));
+                    carregarEstoque(opc('stock_items'));
+                    carregarDocumentos(opc('documentos'));
+                    carregarContratos(opc('contratos'));
+                    renderAll(dado('audit_logs'));
                 } catch (err) { console.error(err); showToast(errMsg(err), true); }
                 finally { carregando = null; }
             })();
@@ -1600,8 +1687,9 @@
             /* estoque */
             renderStock();
 
-            /* regimento & convenção */
+            /* documentos */
             renderDocumentos();
+            renderContratos();
 
             /* permissões */
             renderPermissoes();
@@ -2316,7 +2404,7 @@
             { id: 'maintenance', nome: 'Manutenção & Torres', ico: 'fa-screwdriver-wrench' },
             { id: 'suppliers', nome: 'Fornecedores & Contratos', ico: 'fa-handshake' },
             { id: 'quotes', nome: 'Orçamentos', ico: 'fa-file-invoice-dollar' },
-            { id: 'docs', nome: 'Regimento & Convenção', ico: 'fa-scale-balanced' },
+            { id: 'docs', nome: 'Documentos', ico: 'fa-folder-open' },
             { id: 'stock', nome: 'Estoque', ico: 'fa-boxes-stacked' },
             { id: 'users', nome: 'Gestão de Usuários', ico: 'fa-users-gear' },
             { id: 'database', nome: 'Banco & Logs', ico: 'fa-database' }
@@ -2446,8 +2534,8 @@
         }
         function renderDocumentos() {
             const aviso = document.getElementById('docs-aviso');
-            aviso.classList.toggle('hidden', docsOk);
-            if (!docsOk) aviso.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> A área de arquivos ainda não existe no banco. Execute o <strong>supabase.sql</strong> atualizado no SQL Editor do Supabase.';
+            aviso.classList.toggle('hidden', docsOk && contratosOk);
+            if (!docsOk || !contratosOk) aviso.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i> A área de arquivos ainda não está completa no banco. Execute o <strong>supabase.sql</strong> atualizado no SQL Editor do Supabase.';
             const podeEnviar = podeTela('users') && docsOk;
             document.getElementById('docs-container').innerHTML = DOCS.map(d => {
                 const a = globalDocs[d.tipo], envia = docEnvio === d.tipo;
@@ -2482,14 +2570,11 @@
         async function arquivoEscolhido(inp) {
             const f = inp.files && inp.files[0], tipo = inp.dataset.tipo; inp.value = '';
             if (!f || !tipo || docEnvio) return;
-            const d = DOCS.find(x => x.tipo === tipo), ext = (f.name.split('.').pop() || '').toLowerCase(), atual = globalDocs[tipo];
-            if (!DOC_EXT.includes(ext)) return showToast('Formato não aceito. Envie PDF, Word (DOC/DOCX/ODT) ou imagem (JPG/PNG).', true);
-            if (f.size > DOC_MAX) return showToast(`Arquivo muito grande (${tamanhoArq(f.size)}). O limite é 50 MB.`, true);
-            if (!f.size) return showToast('O arquivo está vazio.', true);
+            const d = DOCS.find(x => x.tipo === tipo), atual = globalDocs[tipo], erro = validarArquivo(f);
+            if (erro) return showToast(erro, true);
             if (atual && !(await confirmBox(`Substituir o ${d.nome} atual ("${atual.nome}") por "${f.name}"? O arquivo anterior será apagado.`, 'Substituir'))) return;
             docEnvio = tipo; renderDocumentos();
-            const limpo = f.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '_').slice(-80);
-            const caminho = `${tipo}/${Date.now()}-${limpo}`;
+            const caminho = caminhoArquivo(tipo, f.name);
             try {
                 await q(sb.storage.from(DOC_BUCKET).upload(caminho, f, { contentType: f.type || 'application/octet-stream', upsert: false }));
                 try {
@@ -2499,7 +2584,7 @@
                 log('DOCUMENTO_ENVIAR', `${d.nome}: ${atual ? 'substituído' : 'enviado'} o arquivo "${f.name}" (${tamanhoArq(f.size)}) por ${currentUserLoggedIn.name}`);
                 showToast(`${d.nome} ${atual ? 'substituído' : 'enviado'} com sucesso!`);
             } catch (err) { console.error(err); showToast(errMsg(err), true); }
-            finally { docEnvio = null; await loadAllData(); renderDocumentos(); }
+            finally { docEnvio = null; await loadAllData(['documentos', 'audit_logs']); renderDocumentos(); }
         }
         async function baixarDocumento(tipo, btn) {
             const a = globalDocs[tipo], d = DOCS.find(x => x.tipo === tipo); if (!a || btn.disabled) return;
@@ -2510,6 +2595,156 @@
                 log('DOCUMENTO_BAIXAR', `${d.nome} ("${a.nome}") baixado por ${currentUserLoggedIn.name}`);
             } catch (err) { console.error(err); showToast(errMsg(err), true); }
             finally { btn.disabled = false; btn.innerHTML = html; }
+        }
+
+        /* ---------- documentos: abas e contratos ---------- */
+        let docsSub = 'regimento', globalContratos = [], contratosOk = true, ctArquivo = null;
+        function docsAba(sub) {
+            docsSub = sub;
+            document.querySelectorAll('#docs-abas .docs-aba').forEach(b => b.classList.toggle('on', b.dataset.sub === sub));
+            document.getElementById('docs-sub-regimento').classList.toggle('hidden', sub !== 'regimento');
+            document.getElementById('docs-sub-contratos').classList.toggle('hidden', sub !== 'contratos');
+        }
+        function validarArquivo(f) {
+            const ext = (f.name.split('.').pop() || '').toLowerCase();
+            if (!DOC_EXT.includes(ext)) return 'Formato não aceito. Envie PDF, Word (DOC/DOCX/ODT) ou imagem (JPG/PNG).';
+            if (f.size > DOC_MAX) return `Arquivo muito grande (${tamanhoArq(f.size)}). O limite é 50 MB.`;
+            if (!f.size) return 'O arquivo está vazio.';
+            return '';
+        }
+        const caminhoArquivo = (pasta, nome) => `${pasta}/${Date.now()}-${nome.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '_').slice(-80)}`;
+        function carregarContratos(res) {
+            try {
+                if (res.error) throw res.error;
+                globalContratos = res.data || []; contratosOk = true;
+            } catch (e) { console.warn('contratos', e); globalContratos = []; contratosOk = false; }
+        }
+        /* vencimento: vencido, vence em até 30 dias, em dia ou sem data */
+        function sitContrato(c) {
+            if (!c.vencimento) return 'SEM';
+            const dias = Math.round((new Date(c.vencimento + 'T00:00:00') - new Date(today() + 'T00:00:00')) / 86400000);
+            return dias < 0 ? 'VENCIDO' : dias <= 30 ? 'VENCENDO' : 'OK';
+        }
+        const SIT_CT = { VENCIDO: ['Vencido', 'bg-rose-500/20 text-rose-400'], VENCENDO: ['Vence em breve', 'bg-amber-500/20 text-amber-400'], OK: ['Em dia', 'bg-emerald-500/20 text-emerald-400'], SEM: ['Sem vencimento', 'bg-slate-700 text-slate-300'] };
+        function renderContratos() {
+            docsAba(docsSub);
+            const podeEnviar = podeTela('users') && contratosOk;
+            document.getElementById('btn-novo-contrato').classList.toggle('hidden', !podeEnviar);
+            document.getElementById('ct-qtd').textContent = globalContratos.length ? `(${globalContratos.length})` : '';
+            /* listas de empresas (filtro e sugestões do cadastro) */
+            const emp = [...new Set(globalContratos.map(c => c.empresa))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            const fe = document.getElementById('ct-filtro-empresa'), atual = fe.value || 'TODAS';
+            const novoHtml = '<option value="TODAS">Todas as empresas</option>' + emp.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join('');
+            if (fe.innerHTML !== novoHtml) { fe.innerHTML = novoHtml; fe.value = emp.includes(atual) ? atual : 'TODAS'; }
+            document.getElementById('lista-empresas-contrato').innerHTML = [...new Set([...emp, ...globalSuppliers.map(s => s.name).filter(Boolean)])].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(e => `<option value="${esc(e)}">`).join('');
+            /* espaço usado no Storage (plano gratuito: 1 GB) */
+            const usado = Object.values(globalDocs).reduce((a, d) => a + (Number(d.tamanho) || 0), 0) + globalContratos.reduce((a, c) => a + (Number(c.tamanho) || 0), 0);
+            document.getElementById('ct-espaco').innerHTML = `<i class="fa-solid fa-hard-drive mr-1"></i> Espaço usado pelos arquivos: <strong>${tamanhoArq(usado || 0)}</strong> de 1 GB (${(usado / 1073741824 * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%)`;
+            const b = document.getElementById('ct-busca').value.trim().toLowerCase(), fv = document.getElementById('ct-filtro-venc').value, fem = fe.value;
+            const lista = globalContratos.filter(c => {
+                const s = sitContrato(c);
+                if (fem !== 'TODAS' && c.empresa !== fem) return false;
+                if (fv === 'VENCENDO' && !['VENCIDO', 'VENCENDO'].includes(s)) return false;
+                if (fv === 'EMDIA' && !['OK', 'SEM'].includes(s)) return false;
+                return !b || [c.empresa, c.titulo, c.nome, c.obs].some(v => (v || '').toLowerCase().includes(b));
+            });
+            document.getElementById('ct-container').innerHTML = lista.map(c => {
+                const [rot, cor] = SIT_CT[sitContrato(c)];
+                return `<div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col gap-3">
+                    <div class="flex justify-between items-start gap-2">
+                        <div class="min-w-0">
+                            <p class="font-bold text-slate-100 break-words"><i class="fa-solid fa-building mr-1 text-blue-400"></i>${esc(c.empresa)}</p>
+                            ${c.titulo ? `<p class="text-sm text-slate-300 mt-0.5 break-words">${esc(c.titulo)}</p>` : ''}
+                        </div>
+                        <span class="text-xs ${cor} px-2.5 py-0.5 rounded-full font-semibold whitespace-nowrap">${rot}</span>
+                    </div>
+                    <div class="bg-slate-900/60 border border-slate-700 rounded-lg p-3 flex items-center gap-3 min-w-0">
+                        <i class="fa-solid ${icoArq(c.nome)} text-2xl shrink-0"></i>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-200 break-all">${esc(c.nome)}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">${c.vencimento ? 'Vence em ' + fmtDate(c.vencimento) + ' · ' : ''}${c.tamanho ? tamanhoArq(c.tamanho) + ' · ' : ''}enviado ${c.enviado_por ? 'por ' + esc(c.enviado_por) + ' ' : ''}em ${new Date(c.enviado_em).toLocaleDateString('pt-BR')}</p>
+                            ${c.obs ? `<p class="text-xs text-slate-400 mt-1 break-words">${esc(c.obs)}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-auto">
+                        <button onclick="baixarContrato(${c.id}, this)" class="flex-1 min-w-[120px] bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold"><i class="fa-solid fa-download mr-1"></i> Baixar</button>
+                        ${podeEnviar ? `<button onclick="abrirContrato(${c.id})" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2.5 rounded-lg text-sm" title="Editar"><i class="fa-solid fa-pen-to-square mr-1"></i> Editar</button>
+                        <button onclick="excluirContrato(${c.id})" class="bg-rose-500/20 hover:bg-rose-600 text-rose-400 hover:text-white px-4 py-2.5 rounded-lg text-sm" title="Excluir"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                </div>`;
+            }).join('') || `<div class="lg:col-span-2 bg-slate-800 border border-slate-700 p-8 rounded-xl text-center text-slate-500">${globalContratos.length ? 'Nenhum contrato encontrado com esse filtro.' : 'Nenhum contrato enviado ainda.' + (podeEnviar ? ' Use <strong>Novo Contrato</strong> para começar.' : '')}</div>`;
+        }
+        function abrirContrato(id) {
+            const c = id ? globalContratos.find(x => x.id === id) : null; if (id && !c) return;
+            document.getElementById('form-contrato').reset();
+            ctArquivo = null;
+            document.getElementById('ct-title').innerText = c ? 'Editar Contrato' : 'Novo Contrato';
+            document.getElementById('ct-id').value = c ? c.id : '';
+            document.getElementById('ct-empresa').value = c ? c.empresa : '';
+            document.getElementById('ct-titulo').value = c ? c.titulo || '' : '';
+            document.getElementById('ct-venc').value = c ? c.vencimento || '' : '';
+            document.getElementById('ct-obs').value = c ? c.obs || '' : '';
+            document.getElementById('ct-arquivo-nome').innerHTML = c ? `Arquivo atual: <strong>${esc(c.nome)}</strong> <span class="text-slate-500">— toque para trocar</span>` : 'Escolher arquivo (PDF, Word ou imagem, até 50 MB)';
+            fecharCal(); syncDatas();
+            document.getElementById('modal-contrato').classList.remove('hidden');
+        }
+        function arquivoContratoEscolhido(inp) {
+            const f = inp.files && inp.files[0]; inp.value = '';
+            if (!f) return;
+            const erro = validarArquivo(f); if (erro) return showToast(erro, true);
+            ctArquivo = f;
+            document.getElementById('ct-arquivo-nome').innerHTML = `<strong>${esc(f.name)}</strong> <span class="text-slate-500">(${tamanhoArq(f.size)})</span>`;
+        }
+        async function salvarContrato(e) {
+            e.preventDefault();
+            const form = e.target;
+            await withBusy(form, async () => {
+                const id = document.getElementById('ct-id').value, atual = id ? globalContratos.find(x => String(x.id) === id) : null;
+                const dados = {
+                    empresa: document.getElementById('ct-empresa').value.trim(),
+                    titulo: document.getElementById('ct-titulo').value.trim() || null,
+                    vencimento: document.getElementById('ct-venc').value || null,
+                    obs: document.getElementById('ct-obs').value.trim() || null
+                };
+                if (!dados.empresa) throw { message: 'Informe a empresa.' };
+                if (!atual && !ctArquivo) throw { message: 'Escolha o arquivo do contrato.' };
+                let novo = null;
+                if (ctArquivo) {
+                    novo = caminhoArquivo('contratos', ctArquivo.name);
+                    await q(sb.storage.from(DOC_BUCKET).upload(novo, ctArquivo, { contentType: ctArquivo.type || 'application/octet-stream', upsert: false }));
+                    Object.assign(dados, { caminho: novo, nome: ctArquivo.name, tamanho: ctArquivo.size, tipo_arquivo: ctArquivo.type || null, enviado_por: currentUserLoggedIn.name, enviado_em: new Date().toISOString() });
+                }
+                try {
+                    if (atual) await q(sb.from('contratos').update(dados).eq('id', atual.id));
+                    else await q(sb.from('contratos').insert(dados));
+                } catch (err) { if (novo) sb.storage.from(DOC_BUCKET).remove([novo]).catch(() => { }); throw err; }
+                if (atual && novo && atual.caminho !== novo) sb.storage.from(DOC_BUCKET).remove([atual.caminho]).catch(() => { });
+                log(atual ? 'CONTRATO_EDITAR' : 'CONTRATO_ENVIAR', `${atual ? 'Contrato atualizado' : 'Contrato enviado'}: ${dados.empresa}${dados.titulo ? ' — ' + dados.titulo : ''}${novo ? ` (arquivo "${dados.nome}", ${tamanhoArq(dados.tamanho)})` : ''} por ${currentUserLoggedIn.name}`);
+                ctArquivo = null;
+                closeModal('modal-contrato');
+                showToast(atual ? 'Contrato atualizado!' : 'Contrato enviado com sucesso!');
+                await loadAllData(['contratos', 'audit_logs']);
+            });
+        }
+        async function baixarContrato(id, btn) {
+            const c = globalContratos.find(x => x.id === id); if (!c || btn.disabled) return;
+            btn.disabled = true; const html = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Baixando...';
+            try {
+                baixarPDF(await q(sb.storage.from(DOC_BUCKET).download(c.caminho)), c.nome);
+                log('CONTRATO_BAIXAR', `Contrato de ${c.empresa} ("${c.nome}") baixado por ${currentUserLoggedIn.name}`);
+            } catch (err) { console.error(err); showToast(errMsg(err), true); }
+            finally { btn.disabled = false; btn.innerHTML = html; }
+        }
+        async function excluirContrato(id) {
+            const c = globalContratos.find(x => x.id === id); if (!c) return;
+            if (!(await confirmBox(`Excluir o contrato de ${c.empresa}${c.titulo ? ' (' + c.titulo + ')' : ''}? O arquivo "${c.nome}" será apagado.`, 'Excluir'))) return;
+            try {
+                await q(sb.from('contratos').delete().eq('id', id));
+                sb.storage.from(DOC_BUCKET).remove([c.caminho]).catch(() => { });
+                log('CONTRATO_EXCLUIR', `Contrato excluído: ${c.empresa}${c.titulo ? ' — ' + c.titulo : ''} ("${c.nome}") por ${currentUserLoggedIn.name}`);
+                showToast('Contrato excluído.');
+                await loadAllData(['contratos', 'audit_logs']);
+            } catch (err) { console.error(err); showToast(errMsg(err), true); }
         }
 
         /* ---------- estoque de materiais ---------- */
@@ -2910,8 +3145,8 @@
         async function backupBanco(btn) {
             if (btn.disabled) return; btn.disabled = true;
             try {
-                const tabelas = ['transactions', 'suppliers', 'maintenance', 'quotes', 'stock_items', 'stock_moves', 'documentos', 'perfis', 'permissoes', 'audit_logs', 'config'], dados = {};
-                for (const t of tabelas) { try { dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : t === 'permissoes' ? 'funcao' : t === 'documentos' ? 'tipo' : 'id')); } catch (e) { if (!['quotes', 'stock_items', 'stock_moves', 'permissoes', 'documentos'].includes(t)) throw e; } }
+                const tabelas = ['transactions', 'suppliers', 'maintenance', 'quotes', 'stock_items', 'stock_moves', 'documentos', 'contratos', 'perfis', 'permissoes', 'audit_logs', 'config'], dados = {};
+                for (const t of tabelas) { try { dados[t] = await q(sb.from(t).select('*').order(t === 'perfis' ? 'usuario' : t === 'permissoes' ? 'funcao' : t === 'documentos' ? 'tipo' : 'id')); } catch (e) { if (!['quotes', 'stock_items', 'stock_moves', 'permissoes', 'documentos', 'contratos'].includes(t)) throw e; } }
                 const arq = { sistema: 'Blue Village Residence', exportadoEm: new Date().toISOString(), exportadoPor: currentUserLoggedIn.username, observacao: 'As senhas não fazem parte do backup.', tabelas: dados };
                 const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(arq, null, 2)], { type: 'application/json' }));
                 a.download = `bluevillage-backup-${today()}.json`; document.body.appendChild(a); a.click();

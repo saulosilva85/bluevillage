@@ -55,13 +55,28 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - **Filtros:** busca por serviço ou empresa, por status e por local.
 - **Exportar PDF:** gera a tabela com os 3 orçamentos de cada cotação, o aprovado, quem aprovou e a justificativa, respeitando os filtros.
 
-### Regimento & Convenção
-- O menu **Regimento & Convenção** (abaixo de Orçamentos) guarda o arquivo atual do **Regimento Interno** e da **Convenção do Condomínio**.
-- **Baixar:** baixa o arquivo com o nome original (funciona no computador e no celular).
-- **Enviar arquivo / Substituir arquivo:** aparece só para quem tem acesso à **Gestão de Usuários**. Aceita PDF, Word (DOC/DOCX/ODT) e imagem (JPG/PNG), até 50 MB. Ao substituir, o sistema pede confirmação e apaga o arquivo anterior.
-- Cada cartão mostra o nome do arquivo, o tamanho, quem enviou e quando. Envios e downloads ficam nos logs.
-- Os arquivos ficam numa pasta **privada** do Supabase Storage (`documentos`): só usuários logados com acesso a essa tela conseguem baixar.
-- O **backup** guarda os dados do arquivo (nome, quem enviou), mas não o arquivo em si; mantenha uma cópia do Regimento e da Convenção também fora do sistema. O **Zerar sistema** não apaga esses dois arquivos.
+### Documentos
+O menu **Documentos** (abaixo de Orçamentos) tem duas abas:
+
+**Regimento & Convenção**
+- Guarda o arquivo atual do **Regimento Interno** e da **Convenção do Condomínio**, com **Baixar** e **Enviar / Substituir arquivo**.
+- Ao substituir, o sistema pede confirmação e apaga o arquivo anterior.
+
+**Contratos**
+- Vários contratos, de várias empresas (inclusive mais de um da mesma empresa).
+- **Novo Contrato:** empresa (sugere os fornecedores já cadastrados), descrição, vencimento (opcional), observações e o arquivo.
+- **Editar:** muda os dados e, se quiser, troca o arquivo (o antigo é apagado). **Excluir:** apaga o contrato e o arquivo, após confirmação.
+- Situação do vencimento: *Vencido*, *Vence em breve* (até 30 dias), *Em dia* ou *Sem vencimento*.
+- Busca por empresa, descrição ou arquivo; filtros por empresa e por vencimento.
+- Mostra o **espaço usado** pelos arquivos (o plano gratuito do Supabase tem 1 GB).
+
+**Regras das duas abas**
+- **Baixar:** para todos que têm acesso à tela Documentos. Baixa com o nome original (computador e celular).
+- **Enviar, substituir, editar e excluir:** só para quem tem acesso à **Gestão de Usuários**.
+- Aceita PDF, Word (DOC/DOCX/ODT) e imagem (JPG/PNG), até 50 MB por arquivo.
+- Envios, alterações, exclusões e downloads ficam nos logs.
+- Os arquivos ficam numa pasta **privada** do Supabase Storage (`documentos`).
+- O **backup** guarda os dados dos arquivos (nome, empresa, quem enviou), mas não os arquivos em si: mantenha uma cópia também fora do sistema. O **Zerar sistema** não apaga os documentos nem os contratos.
 
 ### Estoque
 - O menu **Estoque** (abaixo de Orçamentos) controla as peças e materiais de reposição (lâmpadas, cloro, fita isolante, sifões etc.).
@@ -86,7 +101,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 #### Permissões de Perfil
 - No fim da tela **Gestão de Usuários**, cada função tem a lista das telas do sistema. Toque para marcar ou desmarcar e clique em **Salvar permissões**.
 - O **Síndico** e o usuário **admin** sempre têm acesso total (não dá para tirar).
-- Padrão inicial: Subsíndico, Conselho Fiscal e Administrativo acessam tudo; o **Supervisor** acessa só **Manutenção, Fornecedores, Orçamentos, Regimento & Convenção e Estoque** (sem Dashboard, Financeiro, Usuários e Banco & Logs).
+- Padrão inicial: Subsíndico, Conselho Fiscal e Administrativo acessam tudo; o **Supervisor** acessa só **Manutenção, Fornecedores, Orçamentos, Documentos e Estoque** (sem Dashboard, Financeiro, Usuários e Banco & Logs).
 - O menu mostra apenas as telas liberadas, e o usuário entra direto na primeira delas. Se a função não tiver nenhuma tela, aparece o aviso *Sem telas liberadas*.
 - Mudanças valem na hora, também para quem já está com o sistema aberto em outro aparelho.
 - A proteção também está no banco: sem a permissão, o Supabase não entrega nem deixa gravar os dados da tela (ex.: quem não tem Financeiro nem Dashboard não consegue ler as movimentações). Só quem tem **Gestão de Usuários** pode mudar permissões, funções e usuários.
@@ -134,6 +149,7 @@ O sistema é um único arquivo (`index.html`) publicado pelo **GitHub Pages**. O
 - No **Supabase**, com login próprio. As senhas são guardadas com criptografia e ninguém consegue vê-las.
 - A **segurança por linha (RLS)** do `supabase.sql` só libera os dados para usuários **logados e cadastrados**.
 - As telas se atualizam sozinhas quando alguém lança algo em outro aparelho. Um usuário excluído é desconectado na hora.
+- Para economizar o tráfego do plano gratuito do Supabase, quando alguém registra algo os outros aparelhos buscam só a parte que mudou. A conferência completa acontece ao entrar, ao voltar para o sistema e a cada 5 minutos com a tela aberta.
 - O plano gratuito do Supabase pausa projetos sem uso por 7 dias. A tarefa automática `.github/workflows/supabase-keepalive.yml` consulta o banco a cada 3 dias para evitar isso (aparece em **Actions** como *Manter Supabase ativo*). Se o projeto pausar, clique em **Restore project** no painel do Supabase.
 - **Backup:** use o botão *Fazer backup do banco* em **Banco & Logs** (recomendado uma vez por semana). Alternativa: no **Table Editor** do Supabase, abra cada tabela e clique em **Export → CSV**.
 
